@@ -243,6 +243,60 @@ public class MatchingService : IMatchingService
         }
     }
 
+    public async Task<EmployerExperienceDto> GetEmployerExperienceAsync(Guid employerId)
+    {
+        var user = await _userRepository.GetByIdAsync(employerId);
+        if (user == null) throw new Exception("Employer not found.");
+
+        var jobs = await _jobRepository.GetJobsByEmployerAsync(employerId);
+        var reviews = await _reviewRepository.GetByRevieweeIdAsync(employerId);
+
+        var totalJobs = jobs.Count();
+        var completedJobs = jobs.Count(j => j.Status == Domain.Enums.JobStatus.Completed);
+        var avgRating = reviews.Any() ? Math.Round(reviews.Average(r => r.Rating), 1) : 0;
+        var reviewCount = reviews.Count();
+
+        // Trust Level Logic: Based on completed jobs and rating
+        string trustLevel = "Medium";
+        if (completedJobs > 10 && avgRating >= 4.5) trustLevel = "High";
+        else if (completedJobs < 2 || avgRating < 3.0) trustLevel = "Low";
+
+        return new EmployerExperienceDto
+        {
+            EmployerId = employerId,
+            TotalJobsPosted = totalJobs,
+            CompletedJobs = completedJobs,
+            AverageRating = avgRating,
+            ReviewCount = reviewCount,
+            IsVerified = !string.IsNullOrEmpty(user.AvatarUrl), // Basic verification rule for now
+            TrustLevel = trustLevel
+        };
+    }
+
+    public async Task<double> GetBudgetFitScoreAsync(Guid userId, Guid jobId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) throw new Exception("User not found.");
+
+        var job = await _jobRepository.GetByIdAsync(jobId);
+        if (job == null) throw new Exception("Job not found.");
+
+        if (user.WorkerProfile == null) return 0;
+
+        var workerRate = (decimal)user.WorkerProfile.HourlyRate;
+        var jobPrice = job.Price;
+
+        if (workerRate <= 0) return 100; // No requirement from worker
+
+        double fitFactor = (double)(jobPrice / workerRate);
+        
+        if (fitFactor >= 1.0) return 100; // Fully fits budget
+        if (fitFactor >= 0.8) return 80;  // Close match
+        if (fitFactor >= 0.5) return 50;  // Partial match
+        
+        return 0; // Below 50% of expectation is usually a mismatch
+    }
+
     private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
     {
         if (lat2 == 0 && lon2 == 0) return 0;

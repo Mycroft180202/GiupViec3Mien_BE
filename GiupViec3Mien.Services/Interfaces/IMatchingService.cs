@@ -12,4 +12,6 @@ public interface IMatchingService
     Task<double> CalculateDistanceAsync(Guid userId, Guid jobId);
     Task<double> GetUserRatingAsync(Guid userId);
     Task<List<string>> GetSkillMatchAsync(Guid userId, Guid jobId);
+    Task<EmployerExperienceDto> GetEmployerExperienceAsync(Guid employerId);
+    Task<double> GetBudgetFitScoreAsync(Guid userId, Guid jobId);
 }

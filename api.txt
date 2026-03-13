@@ -36,6 +36,30 @@ https://localhost:7004/api/Feedback/{jobId}/{employerId}/rating
 {
     "score": 5
 }
+https://localhost:7004/api/Matching/{employerId}/experience
+{
+  "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+  "totalJobsPosted": 15,
+  "completedJobs": 12,
+  "averageRating": 4.8,
+  "reviewCount": 10,
+  "isVerified": true,
+  "trustLevel": "High"
+}
+https://localhost:7004/api/Matching/{jobId}/{employerId}/budgetrate
+{
+  "jobId": "...",
+  "employerId": "...",
+  "budgetFitScore": 100
+}
+Service Layer: Added 
+
+GetBudgetFitScoreAsync
+ to 
+
+MatchingService
+ which performs real-time currency comparison between Job.Price and WorkerProfile.HourlyRate.
+---------------
 ["Nấu ăn", "Dọn dẹp", "Chăm sóc trẻ"]
 
 [

@@ -119,4 +119,37 @@ public class MatchingController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpGet("{employerId}/experience")]
+    public async Task<IActionResult> GetEmployerExperience(Guid employerId)
+    {
+        try
+        {
+            var experience = await _matchingService.GetEmployerExperienceAsync(employerId);
+            return Ok(experience);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("{jobId}/{employerId}/budgetrate")]
+    public async Task<IActionResult> GetBudgetRate(Guid jobId, Guid employerId)
+    {
+        try
+        {
+            var budgetFit = await _matchingService.GetBudgetFitScoreAsync(employerId, jobId);
+            return Ok(new 
+            { 
+                jobId = jobId, 
+                employerId = employerId, 
+                budgetFitScore = budgetFit 
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

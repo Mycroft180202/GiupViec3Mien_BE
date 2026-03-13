@@ -6,9 +6,10 @@ namespace GiupViec3Mien.Services.Interfaces;
 
 public interface IJobRepository
 {
-    Task AddAsync(Domain.Entities.Job job);
-    Task<Domain.Entities.Job?> GetByIdAsync(System.Guid id);
-    Task<Domain.Entities.Job?> GetLatestJobByEmployerAsync(Guid employerId);
-    Task<IEnumerable<Domain.Entities.Job>> GetActiveJobsAsync();
+    Task AddAsync(GiupViec3Mien.Domain.Entities.Job job);
+    Task<GiupViec3Mien.Domain.Entities.Job?> GetByIdAsync(Guid id);
+    Task<GiupViec3Mien.Domain.Entities.Job?> GetLatestJobByEmployerAsync(Guid employerId);
+    Task<IEnumerable<GiupViec3Mien.Domain.Entities.Job>> GetActiveJobsAsync();
+    Task<IEnumerable<GiupViec3Mien.Domain.Entities.Job>> GetJobsByEmployerAsync(Guid employerId);
     Task SaveChangesAsync();
 }

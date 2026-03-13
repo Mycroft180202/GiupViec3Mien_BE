@@ -44,6 +44,14 @@ public class JobRepository : IJobRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Job>> GetJobsByEmployerAsync(Guid employerId)
+    {
+        return await _context.Jobs
+            .Where(j => j.EmployerId == employerId)
+            .OrderByDescending(j => j.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
