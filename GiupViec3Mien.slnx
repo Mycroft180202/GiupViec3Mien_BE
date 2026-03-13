@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="GiupViec3Mien.Domain/GiupViec3Mien.Domain.csproj" />
+  <Project Path="GiupViec3Mien.Persistence/GiupViec3Mien.Persistence.csproj" />
+  <Project Path="GiupViec3Mien.Presentation/GiupViec3Mien.Presentation.csproj" />
+  <Project Path="GiupViec3Mien.Services/GiupViec3Mien.Services.csproj" />
+  <Project Path="GiupViec3Mien.Web/GiupViec3Mien.Web.csproj" />
+</Solution>
