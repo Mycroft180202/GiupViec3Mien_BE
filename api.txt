@@ -1,0 +1,69 @@
+https://localhost:7004/api/Matching/{jobId}/bestmatch
+{
+  "workerId": "7a4569a7...",
+  "fullName": "Nguyễn Thị Sạch (Best Match)",
+  "matchScore": 98.5,
+  "distanceKm": 0.73,
+  "averageRating": 4.5,
+  "matchedSkills": ["Dọn dẹp", "Nấu ăn"]
+}
+https://localhost:7004/api/User/uploadprofile
+{
+    "imgurl": "https://res.cloudinary.com/dlanmiqsh/image/upload/v1773385731/2026/03/13/741a719b-e2d6-4bfb-b949-c4b5947c7325/myimg_ofuuu5.png"
+}
+https://localhost:7004/api/User/updateskill
+# Request to /api/User/updateskill
+["Nấu ăn", "Dọn dẹp", "Chăm sóc trẻ"]
+https://localhost:7004/api/Matching/{jobId}/{employerId}/distance
+{
+    "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+    "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+    "distanceKm": 11830.91
+}
+https://localhost:7004/api/Matching/{jobId}/{employerId}/rating
+{
+    "jobId": "...",
+    "employerId": "...",
+    "averageRating": 4.5
+}
+https://localhost:7004/api/Matching/{jobId}/{employerId}/matchskill
+{
+    "jobId": "22c89166-...",
+    "employerId": "5a4d1d5b-...",
+    "matchedSkills": ["Nấu ăn", "Dọn dẹp"]
+}
+https://localhost:7004/api/Feedback/{jobId}/{employerId}/rating
+{
+    "score": 5
+}
+["Nấu ăn", "Dọn dẹp", "Chăm sóc trẻ"]
+
+[
+  {
+    "fullName": "Nguyễn Thị Sạch (Best Match)",
+    "matchScore": 98.5,
+    "distanceKm": 0.73,
+    "averageRating": 4.5,
+    "matchedSkills": ["Dọn dẹp", "Nấu ăn"]
+  },
+  {
+    "fullName": "Trần Văn Bếp (Far Match)",
+    "matchScore": 70,
+    "distanceKm": 9.32,
+    "averageRating": 5,
+    "matchedSkills": ["Nấu ăn", "Dọn dẹp"]
+  },
+  {
+    "fullName": "Lê Văn Mới (Weak Match)",
+    "matchScore": 63.5,
+    "distanceKm": 0.5,
+    "averageRating": 2.5,
+    "matchedSkills": ["Dọn dẹp"]
+  }
+]
+Factor	Weight	Why it matters
+Location (Geo-Proximity)	40%	Most important for domestic services; workers shouldn't travel too far.
+Skill Alignment	30%	Matches the worker's skills (JSONB field) against job requirements.
+Reputation (Ratings)	15%	Higher average stars from Reviews boost the score.
+Experience & Trust	10%	Years of experience and Verified status (Identity proof).
+Budget Fit	5%	Matches the worker's HourlyRate with the job's Price.

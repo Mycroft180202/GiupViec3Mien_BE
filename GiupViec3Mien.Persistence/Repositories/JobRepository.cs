@@ -27,6 +27,14 @@ public class JobRepository : IJobRepository
         return await _context.Jobs.Include(j => j.Employer).FirstOrDefaultAsync(j => j.Id == id);
     }
 
+    public async Task<Job?> GetLatestJobByEmployerAsync(Guid employerId)
+    {
+        return await _context.Jobs
+            .Where(j => j.EmployerId == employerId && j.Status == Domain.Enums.JobStatus.Open)
+            .OrderByDescending(j => j.CreatedAt)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<IEnumerable<Job>> GetActiveJobsAsync()
     {
         return await _context.Jobs

@@ -21,6 +21,9 @@ public class Job
     public decimal Price { get; set; }
     public JobStatus Status { get; set; } = JobStatus.Open;
 
+    [Column(TypeName = "jsonb")]
+    public string? RequiredSkills { get; set; } // JSON array of required skills
+
     public Guid? AssignedWorkerId { get; set; }
     public User? AssignedWorker { get; set; }
 

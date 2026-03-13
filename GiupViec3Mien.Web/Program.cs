@@ -4,6 +4,8 @@ using GiupViec3Mien.Persistence.Repositories;
 using GiupViec3Mien.Services.Auth;
 using GiupViec3Mien.Services.Job;
 using GiupViec3Mien.Services.FileStorage;
+using GiupViec3Mien.Services.UserServices;
+using GiupViec3Mien.Services.Matching;
 using GiupViec3Mien.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -29,9 +31,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Configure Repositories & Services
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJobRepository, JobRepository>();
 builder.Services.AddScoped<IJobService, JobService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IMatchingService, MatchingService>();
 builder.Services.AddScoped<IFileStorageService, CloudinaryService>();
 
 // Configure JWT Authentication

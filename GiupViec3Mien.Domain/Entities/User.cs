@@ -14,6 +14,9 @@ public class User
     public bool IsGuest { get; set; } = false;
     public string? AvatarUrl { get; set; }
     
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    
     [Column(TypeName = "jsonb")]
     public string? AdditionalInfo { get; set; } // JSONB mapping for dynamic metadata
 
