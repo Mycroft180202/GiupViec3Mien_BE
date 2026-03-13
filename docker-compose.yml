@@ -7,7 +7,7 @@ services:
     container_name: giupviec3mien_postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Nhat180202@@
+      POSTGRES_PASSWORD: 123456
       POSTGRES_DB: GiupViec3MienDB
     ports:
       - "5432:5432"
