@@ -307,6 +307,17 @@ API Endpoint	Method	Description
 /api/Chat/history/{roomId}	GET	Chat History: Retrieves all past messages for a specific room.
 /api/Chat/room-id/{fId}/{cId}	GET	Helper: Generates the consistent Room ID for a Freelancer/Client pair.
 
+1. Seed Data Generated
+I created a robust seeder at 
+
+GiupViec3Mien.Persistence/Seeders/SeedTestChat.cs
+ that performs the following:
+
+Users Created:
+Freelancer: 10af465d-9a1d-4ceb-abc8-91450451803a (Trần Thợ Điện)
+Client: f70a5f84-1f09-425e-b50e-19dd60e398cc (Nguyễn Chủ Nhà)
+Chat History: Seeded 3 initial messages between them to simulate a real conversation about availability.
+
 2. API Testing Results
 I verified the endpoints using the seeded data:
 
