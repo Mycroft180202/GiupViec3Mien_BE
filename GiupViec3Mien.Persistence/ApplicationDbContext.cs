@@ -13,6 +13,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Review> Reviews { get; set; }
 
     public DbSet<JobApplication> JobApplications { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -75,6 +76,18 @@ public class ApplicationDbContext : DbContext
             .HasOne(r => r.Reviewee)
             .WithMany()
             .HasForeignKey(r => r.RevieweeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ChatMessage>()
+            .HasOne(cm => cm.Sender)
+            .WithMany()
+            .HasForeignKey(cm => cm.SenderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ChatMessage>()
+            .HasOne(cm => cm.Receiver)
+            .WithMany()
+            .HasForeignKey(cm => cm.ReceiverId)
             .OnDelete(DeleteBehavior.Restrict);
             
         // Setup PostGIS extension (for later geography implementations)

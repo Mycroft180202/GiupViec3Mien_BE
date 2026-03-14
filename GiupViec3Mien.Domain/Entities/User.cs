@@ -8,6 +8,7 @@ public class User
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Phone { get; set; } = string.Empty;
+    public string? Email { get; set; }
     public string PasswordHash { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public Role Role { get; set; }

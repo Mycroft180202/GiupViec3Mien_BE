@@ -301,3 +301,59 @@ API Endpoint	Method	Description
   "isAccepted": false
 }
 https://docs.google.com/document/d/1nO_z0R8Cgdnsjips-077gI0qupBH5_DsyDahjyakPEQ/edit?tab=t.0
+
+API Endpoint	Method	Description
+/chatHub	WS	SignalR Hub: Connect here for real-time messaging.
+/api/Chat/history/{roomId}	GET	Chat History: Retrieves all past messages for a specific room.
+/api/Chat/room-id/{fId}/{cId}	GET	Helper: Generates the consistent Room ID for a Freelancer/Client pair.
+
+2. API Testing Results
+I verified the endpoints using the seeded data:
+
+Test 1: Room ID Generation
+Endpoint: GET /api/Chat/room-id/{freelancerId}/{clientId}
+Result: Successfully generated the combined ID: 10af465d-9a1d-4ceb-abc8-91450451803a_f70a5f84-1f09-425e-b50e-19dd60e398cc
+Note: The logic consistently sorts the IDs to ensure the room is shared between both users.
+Test 2: Chat History Retrieval
+Endpoint: GET /api/Chat/history/{roomId}
+Result: Successfully retrieved the conversation history.
+json
+[
+  { "senderId": "...cc", "message": "Chào bạn, bạn có rảnh vào sáng mai không?" },
+  { "senderId": "...3a", "message": "Chào anh, tôi rảnh ạ. Mấy giờ tôi có thể qua được?" },
+  { "senderId": "...cc", "message": "Tầm 9h sáng nhé bạn." }
+]
+
+net8smtpmail zajh nkrp qwem hxgz
+tested:
+test chat and send email:Freelancer: thanhhovn2016@gmail.com
+Client: thanhhovn2016@yandex.com
+
+. Integration with Hiring Workflow
+I updated the JobService.AcceptApplicationAsync method to trigger a congratulatory email whenever an employer accepts an application.
+
+Trigger: Triggered via POST /api/Job/applications/{id}/accept.
+Recipient: The specific Freelancer (Worker) who applied for the job.
+2. Email Content
+The freelancer receives a stylized HTML email containing:
+
+Congratulatory Header: A vibrant notice of their successful application.
+Job Details: Displays the Title of the job they were hired for.
+Employer Identity: Mentions the name of the Client who hired them.
+Next Steps: Encourages them to start communicating with the client via the in-app chat.
+3. Technical Implementation
+Injection: 
+
+IEmailService
+ is now a dependency of 
+
+JobService
+.
+Resilience: The email send logic is wrapped in an asynchronous try-catch block to ensure that if the SMTP server is busy, the actual database transaction (hiring) still completes successfully.
+Data Accuracy: The system uses the Applicant.Email fetched directly from the database to ensure the notification reaches the correct user.
+4. Verification Success
+Tested the flow end-to-end:
+
+Status: Success
+Log: Application accepted and email sent to thanhhovn2016@gmail.com
+Context: Verified for the job "Test Job for Acceptance".

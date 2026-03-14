@@ -14,12 +14,17 @@ public class JobService : IJobService
     private readonly IJobRepository _jobRepository;
     private readonly IJobApplicationRepository _applicationRepository;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IEmailService _emailService;
 
-    public JobService(IJobRepository jobRepository, IJobApplicationRepository applicationRepository, IFileStorageService fileStorageService)
+    public JobService(IJobRepository jobRepository, 
+                      IJobApplicationRepository applicationRepository, 
+                      IFileStorageService fileStorageService,
+                      IEmailService emailService)
     {
         _jobRepository = jobRepository;
         _applicationRepository = applicationRepository;
         _fileStorageService = fileStorageService;
+        _emailService = emailService;
     }
 
     public async Task<JobResponse> CreateJobAsync(Guid employerId, CreateJobRequest request)
@@ -135,6 +140,34 @@ public class JobService : IJobService
 
         await _applicationRepository.SaveChangesAsync();
         await _jobRepository.SaveChangesAsync();
+
+        // Notify Freelancer via Email
+        if (application.Applicant != null && !string.IsNullOrEmpty(application.Applicant.Email))
+        {
+            try
+            {
+                string subject = $"Congratulations! Your application for '{job.Title}' has been accepted";
+                string body = $@"
+                    <div style='font-family: sans-serif; max-width: 600px; line-height: 1.6;'>
+                        <h2 style='color: #2e7d32;'>Good news!</h2>
+                        <p>Hi <strong>{application.Applicant.FullName}</strong>,</p>
+                        <p>Your application for the job <strong>""{job.Title}""</strong> has been accepted by <strong>{job.Employer?.FullName ?? "the client"}</strong>.</p>
+                        <p>The job status is now <strong>In Progress</strong>. You can now start communicating with the client directly in the app.</p>
+                        <div style='margin: 20px 0; padding: 15px; border-left: 5px solid #2e7d32; background: #e8f5e9;'>
+                            <strong>Job:</strong> {job.Title}<br/>
+                            <strong>Client:</strong> {job.Employer?.FullName ?? "N/A"}
+                        </div>
+                        <p>Good luck with your new assignment!</p>
+                    </div>";
+
+                await _emailService.SendEmailAsync(application.Applicant.Email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the transaction
+                Console.WriteLine($"Failed to send acceptance email: {ex.Message}");
+            }
+        }
 
         return MapToApplicationResponse(application);
     }
