@@ -1,6 +1,7 @@
 using System;
 using GiupViec3Mien.Domain.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
 namespace GiupViec3Mien.Domain.Entities;
 
@@ -26,6 +27,8 @@ public class Job
 
     public Guid? AssignedWorkerId { get; set; }
     public User? AssignedWorker { get; set; }
+
+    public ICollection<JobApplication> Applications { get; set; } = new List<JobApplication>();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

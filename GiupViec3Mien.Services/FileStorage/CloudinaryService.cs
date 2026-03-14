@@ -34,10 +34,35 @@ public class CloudinaryService : IFileStorageService
             {
                 File = new FileDescription(file.FileName, stream),
                 Folder = folderName,
-                // Automatically generate a unique filename
                 UseFilename = true,
                 UniqueFilename = true,
                 Overwrite = false
+            };
+
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            
+            if (uploadResult.Error != null)
+            {
+                throw new Exception($"Cloudinary Upload Error: {uploadResult.Error.Message}");
+            }
+
+            return uploadResult.SecureUrl.ToString();
+        }
+
+        return string.Empty;
+    }
+
+    public async Task<string> UploadFileAsync(IFormFile file, string folderName = "GiupViec3Mien/CVs")
+    {
+        if (file.Length > 0)
+        {
+            using var stream = file.OpenReadStream();
+            var uploadParams = new RawUploadParams
+            {
+                File = new FileDescription(file.FileName, stream),
+                Folder = folderName,
+                UseFilename = true,
+                UniqueFilename = true
             };
 
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);

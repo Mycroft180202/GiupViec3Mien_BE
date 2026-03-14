@@ -3,6 +3,7 @@ using System;
 using GiupViec3Mien.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GiupViec3Mien.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260314041823_AddJobApplications")]
+    partial class AddJobApplications
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -91,9 +94,6 @@ namespace GiupViec3Mien.Persistence.Migrations
 
                     b.Property<decimal>("BidPrice")
                         .HasColumnType("numeric");
-
-                    b.Property<string>("CvUrl")
-                        .HasColumnType("text");
 
                     b.Property<bool>("IsAccepted")
                         .HasColumnType("boolean");
@@ -261,7 +261,7 @@ namespace GiupViec3Mien.Persistence.Migrations
                         .IsRequired();
 
                     b.HasOne("GiupViec3Mien.Domain.Entities.Job", "Job")
-                        .WithMany("Applications")
+                        .WithMany()
                         .HasForeignKey("JobId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -307,11 +307,6 @@ namespace GiupViec3Mien.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.Job", b =>
-                {
-                    b.Navigation("Applications");
                 });
 
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.User", b =>

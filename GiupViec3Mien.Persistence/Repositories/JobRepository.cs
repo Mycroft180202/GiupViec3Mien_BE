@@ -47,6 +47,8 @@ public class JobRepository : IJobRepository
     public async Task<IEnumerable<Job>> GetJobsByEmployerAsync(Guid employerId)
     {
         return await _context.Jobs
+            .Include(j => j.AssignedWorker)
+            .Include(j => j.Applications)
             .Where(j => j.EmployerId == employerId)
             .OrderByDescending(j => j.CreatedAt)
             .ToListAsync();

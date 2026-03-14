@@ -12,9 +12,24 @@ public class ApplicationDbContext : DbContext
     public DbSet<Job> Jobs { get; set; }
     public DbSet<Review> Reviews { get; set; }
 
+    public DbSet<JobApplication> JobApplications { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // ... existing configurations ...
+        modelBuilder.Entity<JobApplication>()
+            .HasOne(ja => ja.Job)
+            .WithMany(j => j.Applications)
+            .HasForeignKey(ja => ja.JobId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<JobApplication>()
+            .HasOne(ja => ja.Applicant)
+            .WithMany()
+            .HasForeignKey(ja => ja.ApplicantId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Required explicitly for PostgreSQL Npgsql to treat specific strings as JSONB
         modelBuilder.Entity<User>()

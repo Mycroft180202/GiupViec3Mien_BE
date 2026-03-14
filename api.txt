@@ -26,14 +26,56 @@ https://localhost:7004/api/Matching/{jobId}/topmatch
     "MatchedSkills": ["Dọn dẹp"]
   }
 ]
+https://localhost:7004/api/Job/{jobId}/apply -POST
+Endpoint: POST http://localhost:5275/api/Job/{jobId}/apply
+Request Type: multipart/form-data
+Parameters:
+Key	Type	Description
+message	
+
+text
+(Optional) Your pitch to the employer.
+bidPrice	number	(Optional) Your proposed rate.
+cv	
+
+File
+New. Support: .pdf, .docx, 
+
+.txt
+, .doc.
+2. Result JSON (Response)
+Upon success, the API returns the Cloudinary URL for the uploaded CV.
+
+Example Response:
+
+json
+{
+  "id": "741a719b-e2d6-4bfb-b949-c4b5947c7325",
+  "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+  "applicantId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+  "applicantName": "Nguyễn Văn A",
+  "message": "Tôi gửi CV đính kèm.",
+  "bidPrice": 160000.0,
+  "cvurl": "https://res.cloudinary.com/dlanmiqsh/raw/upload/v12345/GiupViec3Mien/CVs/my_cv.pdf",
+  "appliedAt": "2026-03-14T13:25:00Z",
+  "isAccepted": false
+}
 https://localhost:7004/api/User/uploadprofile
 {
     "imgurl": "https://res.cloudinary.com/dlanmiqsh/image/upload/v1773385731/2026/03/13/741a719b-e2d6-4bfb-b949-c4b5947c7325/myimg_ofuuu5.png"
 }
-https://localhost:7004/api/User/updateskill
-# Request to /api/User/updateskill
-["Nấu ăn", "Dọn dẹp", "Chăm sóc trẻ"]
-https://localhost:7004/api/Matching/{jobId}/{employerId}/rating
+https://localhost:7004/api/User/updateskill -POST
+[
+  "Nấu ăn",
+  "Dọn dẹp",
+  "Chăm sóc trẻ",
+  "Đi chợ"
+]
+response:
+{
+  "message": "Skills updated successfully."
+}
+https://localhost:7004/api/Matching/{jobId}/{employerId}/rating -GET
 {
     "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
     "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
@@ -117,4 +159,145 @@ Reputation (Ratings)	15%	Higher average stars from Reviews boost the score.
 Experience & Trust	10%	Years of experience and Verified status (Identity proof).
 Budget Fit	5%	Matches the worker's HourlyRate with the job's Price.
 
+API Endpoint	Method	Description
+/api/Job/my-applications	GET	New. Returns a JSON list of every job/demand the current user has already applied to, including bid prices and timestamps.
+/api/Job/{id}/my-application	GET	New. Returns the specific application details for a single jobId. If the user hasn't applied, it returns a 404 Not Found.
+/api/Job/{id}/applicants	GET	(For Owners) Lists all users who have expressed interest in their job.
+Response Body:
+json
+[
+  {
+    "id": "741a719b-e2d6-4bfb-b949-c4b5947c7325",
+    "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+    "applicantId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+    "applicantName": "Nguyễn Văn A",
+    "message": "Tôi sẵn sàng nhận việc vào cuối tuần này.",
+    "bidPrice": 160000.0,
+    "appliedAt": "2026-03-14T11:48:00Z",
+    "isAccepted": false
+  },
+  {
+    "id": "0ac26da3-b82a-49da-9958-61de4165cbed",
+    "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+    "applicantId": "d2aaeb1e-e2d6-4bfb-b949-c4b5947c7325",
+    "applicantName": "Công ty Dịch vụ Hoàn Mỹ",
+    "message": "Chúng tôi có đội ngũ chuyên nghiệp sẵn sàng ngay.",
+    "bidPrice": 180000.0,
+    "appliedAt": "2026-03-14T11:50:00Z",
+    "isAccepted": false
+  }
+]
+API Endpoint	Method	Description
+/api/Job	POST	Create Job: Client submits title, description, budget, and coordinates.
+Request Body:
+json
+{
+  "title": "Dọn dẹp nhà cửa định kỳ",
+  "description": "Cần tìm người dọn dẹp căn hộ 2 phòng ngủ, làm việc vào sáng thứ 7 hàng tuần.",
+  "location": "123 Đường ABC, Quận 1, TP.HCM",
+  "price": 250000.00,
+  "latitude": 10.7769,
+  "longitude": 106.7009
+}
+Response Body:
+json
+{
+  "id": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+  "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+  "title": "Dọn dẹp nhà cửa định kỳ",
+  "description": "Cần tìm người dọn dẹp căn hộ 2 phòng ngủ, làm việc vào sáng thứ 7 hàng tuần.",
+  "location": "123 Đường ABC, Quận 1, TP.HCM",
+  "price": 250000.0,
+  "status": 0,
+  "createdAt": "2026-03-14T11:46:00Z"
+}
+
+/api/Job/my-jobs	GET	Dashboard: Lists all jobs posted by the logged-in client.
+[
+  {
+    "id": "guid",
+    "title": "Dọn dẹp nhà chung cư Quận 1",
+    "price": 200000.0,
+    "status": 1,                       // InProgress
+    "applicantCount": 12,              // Added: See how many people applied
+    "assignedWorkerId": "guid",        // Added: Identify the staff
+    "assignedWorkerName": "Nguyễn Văn H hired worker", // Added: Display staff name
+    "createdAt": "2026-03-14T13:40:00Z"
+  }
+]
+/api/Job/{id}/applicants	GET	Review: Lists all Freelancers who have applied, including their bid prices and messages.
+Response Body:
+[
+  {
+    "id": "guid",
+    "jobId": "guid",
+    "applicantId": "guid",
+    "applicantName": "Nguyễn Văn A",
+    "message": "Tôi gửi CV đính kèm.",
+    "bidPrice": 160000.0,
+    "cvUrl": "https://res.cloudinary.com/.../my_cv.pdf", // Field is present here
+    "appliedAt": "2026-03-14T13:25:00Z",
+    "isAccepted": false
+  }
+]
+/api/Job/applications/{id}/accept	POST	Hire: (New) Accepts a specific application. This automatically sets the job to InProgress and assigns the Freelancer to the job.
+{
+  "id": "741a719b-e2d6-...",
+  "jobId": "5b2aa9bb-...",
+  "jobTitle": "Dọn dẹp nhà chung cư Quận 1",
+  "jobPrice": 200000.0,
+  "applicantId": "c97b1460-...",
+  "applicantName": "Nguyễn Văn A",
+  "message": "Tôi sẵn sàng làm việc.",
+  "bidPrice": 180000.0,
+  "cvUrl": "https://...",
+  "appliedAt": "2026-03-14T13:25:00Z",
+  "isAccepted": true  // Now TRUE, confirming the hire
+}
+API Endpoint	Method	Description
+/api/Job/available	GET	Marketplace: Lists all open jobs nearby. Used in conjunction with matching scores.
+[
+  {
+    "id": "guid",
+    "employerId": "guid",
+    "employerName": "Bà Nguyễn Thị Chủ Nhà",    // Added for Trust
+    "employerAvatarUrl": "https://...",        // Added for Trust
+    "title": "Dọn dẹp nhà chung cư Quận 1",
+    "description": "Cần người dọn dẹp gấp...",
+    "location": "Quận 1, TP.HCM",
+    "price": 200000.0,
+    "latitude": 10.7769,                        // Added for Geo-filtering
+    "longitude": 106.7009,                      // Added for Geo-filtering
+    "requiredSkills": "[\"Dọn dẹp\", \"Nấu ăn\"]", // Added for Skill-Matching context
+    "status": 0,
+    "createdAt": "2026-03-14T13:40:00Z"
+  }
+]
+/api/Job/my-applications	GET	History: Lists all jobs the freelancer has applied to and the status of those bids.
+[
+  {
+    "id": "guid",
+    "jobId": "guid",
+    "jobTitle": "Dọn dẹp nhà chung cư Quận 1",  // Added for easy listing
+    "jobPrice": 200000.0,                      // Added for bid comparison
+    "applicantId": "guid",
+    "applicantName": "Nguyễn Văn A",
+    "message": "Tôi sẵn sàng làm việc.",
+    "bidPrice": 180000.0,
+    "cvUrl": "https://...",
+    "appliedAt": "2026-03-14T13:25:00Z",
+    "isAccepted": false
+  }
+]
+/api/Job/{id}/my-application	GET	Status: Detailed view of a single bid, showing if it has been "Accepted" by the client.
+{
+  "id": "guid",
+  "jobId": "guid",
+  "applicantName": "Nguyễn Văn A",
+  "message": "Tôi gửi CV đính kèm.",
+  "bidPrice": 160000.0,
+  "cvUrl": "https://res.cloudinary.com/.../my_cv.pdf", // Integrated across all APIs
+  "appliedAt": "2026-03-14T13:25:00Z",
+  "isAccepted": false
+}
 https://docs.google.com/document/d/1nO_z0R8Cgdnsjips-077gI0qupBH5_DsyDahjyakPEQ/edit?tab=t.0
