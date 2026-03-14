@@ -43,6 +43,16 @@ public class UserService : IUserService
         return imageUrl;
     }
 
+    public async Task UpdateProfileImageUrlAsync(Guid userId, string imgUrl)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) throw new Exception("User not found.");
+
+        user.AvatarUrl = imgUrl;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userRepository.SaveChangesAsync();
+    }
+
     public async Task UpdateSkillsAsync(Guid userId, List<string> skills)
     {
         var user = await _userRepository.GetByIdAsync(userId);

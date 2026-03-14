@@ -1,12 +1,31 @@
-https://localhost:7004/api/Matching/{jobId}/bestmatch
-{
-  "workerId": "7a4569a7...",
-  "fullName": "Nguyễn Thị Sạch (Best Match)",
-  "matchScore": 98.5,
-  "distanceKm": 0.73,
-  "averageRating": 4.5,
-  "matchedSkills": ["Dọn dẹp", "Nấu ăn"]
-}
+https://localhost:7004/api/Matching/{jobId}/topmatch
+[
+  {
+    "EmployerId": "d2aaeb1e...",
+    "JobId": "0a8de53a-b82a-49da-9958-61de4165cbed", // Consistent ID
+    "JobTitle": "Best Job",
+    "EmployerName": "Employer Multi-Job",
+    "MatchScore": 65,
+    "DistanceKm": 0.02,
+    "AverageRating": 0,
+    "TrustLevel": "Low",
+    "IsVerified": true,
+    "BudgetFitScore": 100,
+    "MatchedSkills": ["Dọn dẹp", "Nấu ăn"]
+  },
+  {
+    "EmployerId": "0ac26da3...",
+    "JobId": "0a8de53a-b82a-49da-9958-61de4165cbed", // Same input search ID
+    "JobTitle": "Other Job",
+    "EmployerName": "Employer Single-Job",
+    "MatchScore": 45,
+    "DistanceKm": 3.31,
+    "AverageRating": 0,
+    "IsVerified": false,
+    "BudgetFitScore": 100,
+    "MatchedSkills": ["Dọn dẹp"]
+  }
+]
 https://localhost:7004/api/User/uploadprofile
 {
     "imgurl": "https://res.cloudinary.com/dlanmiqsh/image/upload/v1773385731/2026/03/13/741a719b-e2d6-4bfb-b949-c4b5947c7325/myimg_ofuuu5.png"
@@ -14,17 +33,23 @@ https://localhost:7004/api/User/uploadprofile
 https://localhost:7004/api/User/updateskill
 # Request to /api/User/updateskill
 ["Nấu ăn", "Dọn dẹp", "Chăm sóc trẻ"]
+https://localhost:7004/api/Matching/{jobId}/{employerId}/rating
+{
+    "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+    "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+    "averageRating": 4.5,
+    "score": 5
+}
 https://localhost:7004/api/Matching/{jobId}/{employerId}/distance
 {
     "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
     "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
     "distanceKm": 11830.91
 }
-https://localhost:7004/api/Matching/{jobId}/{employerId}/rating
+https://localhost:7004/api/{employerId}/avgrating
 {
-    "jobId": "...",
-    "employerId": "...",
-    "averageRating": 4.5
+  "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+  "averageRating": 4.8
 }
 https://localhost:7004/api/Matching/{jobId}/{employerId}/matchskill
 {
@@ -91,3 +116,5 @@ Skill Alignment	30%	Matches the worker's skills (JSONB field) against job requir
 Reputation (Ratings)	15%	Higher average stars from Reviews boost the score.
 Experience & Trust	10%	Years of experience and Verified status (Identity proof).
 Budget Fit	5%	Matches the worker's HourlyRate with the job's Price.
+
+https://docs.google.com/document/d/1nO_z0R8Cgdnsjips-077gI0qupBH5_DsyDahjyakPEQ/edit?tab=t.0

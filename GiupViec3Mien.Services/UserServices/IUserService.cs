@@ -8,5 +8,6 @@ namespace GiupViec3Mien.Services.UserServices;
 public interface IUserService
 {
     Task<string> UploadProfileImageAsync(Guid userId, IFormFile file);
+    Task UpdateProfileImageUrlAsync(Guid userId, string imgUrl);
     Task UpdateSkillsAsync(Guid userId, List<string> skills);
 }

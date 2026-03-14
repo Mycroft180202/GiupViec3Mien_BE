@@ -132,4 +132,63 @@ public class SeedController : ControllerBase
             workers = new[] { "Nguyễn Thị Sạch", "Trần Văn Bếp", "Lê Văn Mới" }
         });
     }
+
+    [HttpPost("employers")]
+    public async Task<IActionResult> SeedEmployers()
+    {
+        // 1. Create a Worker seeking jobs
+        var worker = new User
+        {
+            Phone = "0777555666",
+            FullName = "Nguyễn Thị Sạch",
+            Role = Role.Worker,
+            Latitude = 10.7769,
+            Longitude = 106.7009,
+            WorkerProfile = new WorkerProfile
+            {
+                HourlyRate = 50000,
+                ExperienceYears = 8,
+                Verified = true,
+                Skills = JsonSerializer.Serialize(new List<string> { "Dọn dẹp", "Nấu ăn" })
+            }
+        };
+        await _context.Users.AddAsync(worker);
+
+        // 2. Clear then Create 3 Diverse Employers
+        var emp1 = new User { Phone = "0911111111", FullName = "Chủ Nhà Tốt Bụng (Excelent)", Role = Role.Employer, AvatarUrl = "v.png" };
+        var emp2 = new User { Phone = "0922222222", FullName = "Chủ Nhà Tạm Được (Average)", Role = Role.Employer, AvatarUrl = "b.png" };
+        var emp3 = new User { Phone = "0933333333", FullName = "Chủ Nhà Xa (Poor)", Role = Role.Employer };
+
+        await _context.Users.AddRangeAsync(emp1, emp2, emp3);
+        await _context.SaveChangesAsync();
+
+        // 3. Create Open Jobs for each
+        var job1 = new Job {
+            EmployerId = emp1.Id, Title = "Dọn biệt thự Quận 1", Latitude = 10.7770, Longitude = 106.7010,
+            Price = 70000, RequiredSkills = JsonSerializer.Serialize(new List<string> { "Dọn dẹp", "Nấu ăn" }),
+            Status = JobStatus.Open
+        };
+        var job2 = new Job {
+            EmployerId = emp2.Id, Title = "Giúp việc theo giờ", Latitude = 10.8000, Longitude = 106.7100,
+            Price = 50000, RequiredSkills = JsonSerializer.Serialize(new List<string> { "Dọn dẹp" }),
+            Status = JobStatus.Open
+        };
+        var job3 = new Job {
+            EmployerId = emp3.Id, Title = "Bốc xếp Bình Dương", Latitude = 11.0000, Longitude = 107.0000,
+            Price = 30000, Status = JobStatus.Open
+        };
+
+        await _context.Jobs.AddRangeAsync(job1, job2, job3);
+        
+        // 4. Add History for Emp 1 (High Trust)
+        for(int i=0; i<15; i++) await _context.Jobs.AddAsync(new Job { EmployerId = emp1.Id, Status = JobStatus.Completed });
+        for(int i=0; i<10; i++) await _context.Reviews.AddAsync(new Review { RevieweeId = emp1.Id, Rating = 5, JobId = job1.Id, ReviewerId = worker.Id });
+        
+        await _context.SaveChangesAsync();
+
+        return Ok(new { 
+            workerId = worker.Id, 
+            employers = new[] { emp1.FullName, emp2.FullName, emp3.FullName } 
+        });
+    }
 }

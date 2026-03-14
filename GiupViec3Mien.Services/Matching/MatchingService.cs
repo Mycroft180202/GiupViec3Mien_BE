@@ -188,6 +188,118 @@ public class MatchingService : IMatchingService
         return matches.OrderByDescending(m => m.MatchScore).Take(limit).ToList();
     }
 
+    public async Task<List<EmployerMatchResultDto>> GetBestJobsForWorkerAsync(Guid workerId, int limit = 10)
+    {
+        var worker = await _userRepository.GetByIdAsync(workerId);
+        if (worker == null || worker.Role != Domain.Enums.Role.Worker) 
+            throw new Exception("Worker not found.");
+
+        var activeJobs = await _jobRepository.GetActiveJobsAsync();
+        var matches = new List<EmployerMatchResultDto>();
+
+        // Find the best job for EACH employer matching this worker
+        var employerGroups = activeJobs
+            .Where(j => j.EmployerId != Guid.Empty)
+            .GroupBy(j => j.EmployerId);
+
+        foreach (var group in employerGroups)
+        {
+            var employerId = group.Key;
+            EmployerMatchResultDto bestMatchForThisEmployer = null;
+            double highestScore = -1;
+
+            foreach (var job in group)
+            {
+                // 1. Distance Score (30%)
+                double distance = CalculateDistance(worker.Latitude, worker.Longitude, job.Latitude, job.Longitude);
+                double distanceScore = distance <= 2 ? 30 : (distance <= 5 ? 20 : (distance <= 10 ? 10 : 0));
+
+                // 2. Skill Match (25%)
+                var workerSkills = DeserializeSkills(worker.WorkerProfile?.Skills);
+                var jobRequiredSkills = DeserializeSkills(job.RequiredSkills);
+                List<string> matchedSkills;
+                if (jobRequiredSkills.Any())
+                {
+                    matchedSkills = workerSkills.Intersect(jobRequiredSkills, StringComparer.OrdinalIgnoreCase).ToList();
+                }
+                else
+                {
+                    matchedSkills = workerSkills.Where(s => job.Title.Contains(s, StringComparison.OrdinalIgnoreCase) || job.Description.Contains(s, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+                double skillScore = matchedSkills.Any() ? (matchedSkills.Count >= 2 ? 25 : 15) : 0;
+
+                // 3. Employer Rating (15%)
+                var reviews = await _reviewRepository.GetByRevieweeIdAsync(employerId);
+                double avgRating = reviews.Any() ? reviews.Average(r => r.Rating) : 0;
+                double ratingScore = avgRating * 3; // 5.0 * 3 = 15
+
+                // 4. Employer Experience & Trust (15%)
+                var employerJobs = await _jobRepository.GetJobsByEmployerAsync(employerId);
+                int totalJobs = employerJobs.Count();
+                int completedJobs = employerJobs.Count(j => j.Status == Domain.Enums.JobStatus.Completed);
+                
+                double experienceScore = completedJobs > 10 ? 15 : (completedJobs > 5 ? 10 : (completedJobs > 0 ? 5 : 0));
+
+                // Trust level string logic
+                string trustLevel = "Medium";
+                if (completedJobs >= 10 && avgRating >= 4.5) trustLevel = "High";
+                else if (completedJobs < 2 || (reviews.Any() && avgRating < 3.0)) trustLevel = "Low";
+
+                // 5. Budget Fit (10%)
+                double budgetFitScore = 0;
+                if (worker.WorkerProfile != null && worker.WorkerProfile.HourlyRate > 0)
+                {
+                    decimal ratio = job.Price / worker.WorkerProfile.HourlyRate;
+                    if (ratio >= 1.0m) budgetFitScore = 10;
+                    else if (ratio >= 0.8m) budgetFitScore = 8;
+                    else if (ratio >= 0.5m) budgetFitScore = 5;
+                }
+                else budgetFitScore = 10;
+
+                // 6. Feedback Score (Specific history with this employer if any)
+                var specificReview = await _reviewRepository.GetReviewAsync(Guid.Empty, worker.Id, employerId);
+                double feedbackScore = specificReview?.Rating ?? 0;
+                double feedbackBonus = feedbackScore > 0 ? 5 : 0;
+
+                // 7. Verification (Included in visual but score part of trust)
+                double verificationScore = !string.IsNullOrEmpty(job.Employer?.AvatarUrl) ? 5 : 0;
+
+                double totalMatchScore = Math.Min(100, distanceScore + skillScore + ratingScore + experienceScore + budgetFitScore + feedbackBonus);
+
+                if (totalMatchScore > highestScore)
+                {
+                    highestScore = totalMatchScore;
+                    bestMatchForThisEmployer = new EmployerMatchResultDto
+                    {
+                        EmployerId = employerId,
+                        JobId = workerId, // CONSISTENT JobId for this search as requested
+                        JobTitle = job.Title,
+                        EmployerName = job.Employer?.FullName ?? "Unknown",
+                        AvatarUrl = job.Employer?.AvatarUrl,
+                        MatchScore = Math.Round(totalMatchScore, 2),
+                        DistanceKm = Math.Round(distance, 2),
+                        AverageRating = Math.Round(avgRating, 1),
+                        ReviewCount = reviews.Count(),
+                        TotalJobsPosted = totalJobs,
+                        CompletedJobs = completedJobs,
+                        TrustLevel = trustLevel,
+                        IsVerified = !string.IsNullOrEmpty(job.Employer?.AvatarUrl),
+                        BudgetFitScore = budgetFitScore * 10,
+                        FeedbackScore = feedbackScore,
+                        MatchedSkills = matchedSkills
+                    };
+                }
+            }
+
+            if (bestMatchForThisEmployer != null)
+            {
+                matches.Add(bestMatchForThisEmployer);
+            }
+        }
+
+        return matches.OrderByDescending(m => m.MatchScore).Take(limit).ToList();
+    }
+
     public async Task<double> CalculateDistanceAsync(Guid userId, Guid jobId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
@@ -295,6 +407,38 @@ public class MatchingService : IMatchingService
         if (fitFactor >= 0.5) return 50;  // Partial match
         
         return 0; // Below 50% of expectation is usually a mismatch
+    }
+    
+    public async Task<double> GetJobRatingAsync(Guid jobId, Guid reviewerId, Guid revieweeId)
+    {
+        var review = await _reviewRepository.GetReviewAsync(jobId, reviewerId, revieweeId);
+        return review?.Rating ?? 0;
+    }
+
+    public async Task<object> GetEmployerRatingAsync(Guid jobId, Guid currentUserId, Guid employerId)
+    {
+        var avgRating = await GetUserRatingAsync(employerId);
+        var score = await GetJobRatingAsync(jobId, currentUserId, employerId);
+
+        return new
+        {
+            jobId = jobId,
+            employerId = employerId,
+            averageRating = avgRating,
+            score = score
+        };
+    }
+
+    public async Task<double> GetDistanceKmAsync(Guid jobId, Guid employerId)
+    {
+        var job = await _jobRepository.GetByIdAsync(jobId);
+        if (job == null) throw new Exception("Job not found.");
+
+        var employer = await _userRepository.GetByIdAsync(employerId);
+        if (employer == null) throw new Exception("Employer not found.");
+
+        double distance = CalculateDistance(job.Latitude, job.Longitude, employer.Latitude, employer.Longitude);
+        return Math.Round(distance, 2);
     }
 
     private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)

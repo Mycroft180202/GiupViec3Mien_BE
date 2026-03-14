@@ -1,0 +1,11 @@
+Summary of Finalized Employer Workflow APIs
+API Endpoint	Request Example / Logic	Status
+POST /api/User/uploadprofile	Accepts { "imgurl": "..." } and updates user profile.	✅ Implemented
+POST /api/User/updateskill	Accepts ["Skill1", "Skill2"] for employer/worker.	✅ Implemented
+GET /api/Matching/{jobId}/{employerId}/rating	Returns combined averageRating and specific job score.	✅ Fixed & Refined
+GET /api/Matching/{jobId}/{employerId}/distance	Returns distanceKm specifically between job and employer.	✅ Fixed & Refined
+GET /api/{employerId}/avgrating	Root-level API for quick average rating lookup.	✅ Implemented
+GET /api/Matching/{jobId}/{employerId}/matchskill	Returns the list of matchedSkills.	✅ Implemented
+GET /api/Feedback/{jobId}/{employerId}/rating	Returns the specific rating score for a job context.	✅ Implemented
+GET /api/Matching/{employerId}/experience	Returns totalJobs, completedJobs, and trustLevel.	✅ Implemented
+GET /api/Matching/{jobId}/{employerId}/budgetrate	Returns budgetFitScore (scaled to 100).	✅ Implemented

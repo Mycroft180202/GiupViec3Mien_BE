@@ -34,8 +34,8 @@ public class FeedbackController : ControllerBase
             var job = await _jobRepository.GetByIdAsync(jobId);
             if (job == null) return NotFound(new { message = "Job not found." });
 
-            // Check if user owns the job
-            if (job.EmployerId != currentUserId)
+            // Check if user is either the employer or the assigned worker
+            if (job.EmployerId != currentUserId && job.AssignedWorkerId != currentUserId)
             {
                 return Forbid();
             }

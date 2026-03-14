@@ -1,7 +1,9 @@
+using GiupViec3Mien.Services.DTOs.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using GiupViec3Mien.Services.UserServices;
@@ -21,7 +23,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("uploadprofile")]
-    public async Task<IActionResult> UploadProfile(IFormFile file)
+    public async Task<IActionResult> UploadProfile([FromBody] UploadProfileRequest request)
     {
         try
         {
@@ -31,10 +33,31 @@ public class UserController : ControllerBase
                 return Unauthorized(new { message = "User not identified." });
             }
 
-            if (file == null || file.Length == 0)
+            if (request == null || string.IsNullOrEmpty(request.ImgUrl))
             {
-                return BadRequest(new { message = "No file uploaded." });
+                return BadRequest(new { message = "No image URL provided." });
             }
+
+            var userId = Guid.Parse(userIdClaim);
+            await _userService.UpdateProfileImageUrlAsync(userId, request.ImgUrl);
+
+            return Ok(new { imgurl = request.ImgUrl });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("uploadfile")]
+    public async Task<IActionResult> UploadFile(IFormFile file)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+            
+            if (file == null || file.Length == 0) return BadRequest(new { message = "No file uploaded." });
 
             var userId = Guid.Parse(userIdClaim);
             var imageUrl = await _userService.UploadProfileImageAsync(userId, file);
