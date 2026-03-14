@@ -15,16 +15,19 @@ public class JobService : IJobService
     private readonly IJobApplicationRepository _applicationRepository;
     private readonly IFileStorageService _fileStorageService;
     private readonly IEmailService _emailService;
+    private readonly IUserRepository _userRepository;
 
     public JobService(IJobRepository jobRepository, 
                       IJobApplicationRepository applicationRepository, 
                       IFileStorageService fileStorageService,
-                      IEmailService emailService)
+                      IEmailService emailService,
+                      IUserRepository userRepository)
     {
         _jobRepository = jobRepository;
         _applicationRepository = applicationRepository;
         _fileStorageService = fileStorageService;
         _emailService = emailService;
+        _userRepository = userRepository;
     }
 
     public async Task<JobResponse> CreateJobAsync(Guid employerId, CreateJobRequest request)
@@ -98,6 +101,37 @@ public class JobService : IJobService
 
         await _applicationRepository.AddAsync(application);
         await _applicationRepository.SaveChangesAsync();
+
+        // Notify Employer via Email
+        if (job.Employer != null && !string.IsNullOrEmpty(job.Employer.Email))
+        {
+            try
+            {
+                var freelancer = await _userRepository.GetByIdAsync(userId);
+                string subject = $"New application for your job: {job.Title}";
+                string body = $@"
+                    <div style='font-family: Arial, sans-serif; max-width: 600px; line-height: 1.6;'>
+                        <h2 style='color: #2c3e50;'>New Job Application</h2>
+                        <p>Hi <strong>{job.Employer.FullName}</strong>,</p>
+                        <p>A freelancer has applied for your job <strong>""{job.Title}""</strong>.</p>
+                        <div style='margin: 20px 0; padding: 15px; border: 1px solid #eee; border-radius: 5px; background: #f9f9f9;'>
+                            <strong>Freelancer:</strong> {freelancer?.FullName ?? "Someone"}<br/>
+                            <strong>Bid Price:</strong> {application.BidPrice:N0} VND<br/>
+                            <strong>Message:</strong> {application.Message}
+                        </div>
+                        <p>Log in to your dashboard to review the application and contact the freelancer.</p>
+                        <div style='margin-top: 20px;'>
+                            <a href='#' style='background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Review Application</a>
+                        </div>
+                    </div>";
+
+                await _emailService.SendEmailAsync(job.Employer.Email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send application notification email: {ex.Message}");
+            }
+        }
 
         return MapToApplicationResponse(application);
     }

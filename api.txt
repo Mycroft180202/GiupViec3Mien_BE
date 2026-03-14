@@ -368,3 +368,31 @@ Tested the flow end-to-end:
 Status: Success
 Log: Application accepted and email sent to thanhhovn2016@gmail.com
 Context: Verified for the job "Test Job for Acceptance".
+
+1. Notification for Clients (Employers)
+I updated the JobService.ApplyToJobAsync method to automatically notify the employer whenever a freelancer applies for their job.
+
+Trigger: Triggered via POST /api/Job/{id}/apply.
+Recipient: The Client (Employer) who posted the job.
+Content: The email includes:
+Job Title: The specific job being applied for.
+Freelancer Identity: The name of the interested worker.
+Bid Price: The proposed cost from the freelancer.
+Message: The freelancer's pitch or introduction.
+Direct Link: A call-to-action button to review the application in the dashboard.
+2. Technical Enhancements
+Data Consistency: The 
+
+JobService
+ now uses 
+
+IUserRepository
+ to fetch the freelancer's profile details to personalizing the email content.
+Performance: The notification logic is asynchronous, ensuring the freelancer's application process remains fast and responsive.
+Reliability: Includes error handling to ensure job applications are always saved even if there are temporary issues with the email server.
+3. Verification Success
+I performed an end-to-end test of the workflow:
+
+Status: Success
+Result: Application submitted and notification email sent to client (thanhhovn2016@yandex.com).
+Job Context: Verified with a sample "Garden Maintenance Service" posting.
