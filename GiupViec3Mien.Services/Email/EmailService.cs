@@ -27,9 +27,11 @@ public class EmailService : IEmailService
         email.Body = builder.ToMessageBody();
 
         using var smtp = new SmtpClient();
+        System.Console.WriteLine($"[EmailService] Sending email to {to}: {subject}...");
         await smtp.ConnectAsync(_settings.SmtpServer, _settings.SmtpPort, SecureSocketOptions.StartTls);
         await smtp.AuthenticateAsync(_settings.Username, _settings.Password);
         await smtp.SendAsync(email);
         await smtp.DisconnectAsync(true);
+        System.Console.WriteLine($"[EmailService] Email sent successfully to {to}.");
     }
 }

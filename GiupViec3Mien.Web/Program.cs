@@ -15,6 +15,8 @@ using Scalar.AspNetCore;
 using GiupViec3Mien.Presentation.Hubs;
 using GiupViec3Mien.Services.Chat;
 using GiupViec3Mien.Services.Email;
+using GiupViec3Mien.Services.Messaging.Consumers;
+using MassTransit;
 using Microsoft.AspNetCore.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,6 +51,29 @@ builder.Services.AddScoped<IChatService, ChatService>();
 // Email Configuration
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+// RabbitMQ (MassTransit) Configuration
+builder.Services.AddMassTransit(x =>
+{
+    // Register Consumers
+    x.AddConsumer<EmailConsumer>();
+    x.AddConsumer<MatchingConsumer>();
+    x.AddConsumer<AnalyticsConsumer>();
+    x.AddConsumer<ApplicationConsumer>();
+    x.AddConsumer<ChatConsumer>();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        var rabbitSettings = builder.Configuration.GetSection("RabbitMq");
+        cfg.Host(rabbitSettings["Host"] ?? "localhost", "/", h =>
+        {
+            h.Username(rabbitSettings["Username"] ?? "guest");
+            h.Password(rabbitSettings["Password"] ?? "guest");
+        });
+
+        cfg.ConfigureEndpoints(context);
+    });
+});
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

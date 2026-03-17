@@ -88,4 +88,23 @@ public class UserController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPost("updateemail")]
+    public async Task<IActionResult> UpdateEmail([FromBody] string email)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+
+            var userId = Guid.Parse(userIdClaim);
+            await _userService.UpdateEmailAsync(userId, email);
+
+            return Ok(new { message = "Email updated successfully.", email = email });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

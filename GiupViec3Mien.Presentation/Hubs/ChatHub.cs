@@ -6,20 +6,18 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using GiupViec3Mien.Services.Interfaces;
+using GiupViec3Mien.Services.Messaging;
+using MassTransit;
 
 namespace GiupViec3Mien.Presentation.Hubs;
 
 public class ChatHub : Hub
 {
-    private readonly IChatService _chatService;
-    private readonly IUserRepository _userRepository;
-    private readonly IEmailService _emailService;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public ChatHub(IChatService chatService, IUserRepository userRepository, IEmailService emailService)
+    public ChatHub(IPublishEndpoint publishEndpoint)
     {
-        _chatService = chatService;
-        _userRepository = userRepository;
-        _emailService = emailService;
+        _publishEndpoint = publishEndpoint;
     }
 
     // Simple in-memory tracker of which user is connected with which ConnectionId
@@ -70,36 +68,10 @@ public class ChatHub : Hub
         var receiverIdString = ids[0] == senderIdString ? ids[1] : ids[0];
         if (!Guid.TryParse(receiverIdString, out var receiverId)) return;
 
-        // Save to DB
-        await _chatService.SaveMessageAsync(senderId, receiverId, message, roomId);
+        // 1. Publish Event (DB Saving + Email Notifications handled by ChatConsumer)
+        await _publishEndpoint.Publish(new MessageSentEvent(senderId, receiverId, message, roomId));
 
-        // Notify via Email
-        var receiver = await _userRepository.GetByIdAsync(receiverId);
-        var sender = await _userRepository.GetByIdAsync(senderId);
-        
-        if (receiver != null && !string.IsNullOrEmpty(receiver.Email))
-        {
-            try 
-            {
-                string subject = $"New message from {sender?.FullName ?? "User"}";
-                string body = $@"
-                    <h2>New Chat Message</h2>
-                    <p><strong>{sender?.FullName ?? "Someone"}</strong> sent you a message:</p>
-                    <blockquote style='padding: 10px; background: #f9f9f9; border-left: 5px solid #ccc;'>
-                        {message}
-                    </blockquote>
-                    <p>Go to the app to reply!</p>";
-                
-                // Fire and forget email or await? Better await for consistency in test
-                await _emailService.SendEmailAsync(receiver.Email, subject, body);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to send notification email: {ex.Message}");
-            }
-        }
-
-        // Broadcast to group
+        // 2. Broadcast to group (Instant UI feedback)
         await Clients.Group(roomId).SendAsync("ReceiveMessage", senderId.ToString(), message, DateTime.UtcNow);
     }
 }

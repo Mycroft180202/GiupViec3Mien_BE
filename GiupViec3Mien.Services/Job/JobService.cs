@@ -1,6 +1,8 @@
 using GiupViec3Mien.Services.DTOs.Job;
 using GiupViec3Mien.Services.Interfaces;
 using GiupViec3Mien.Services.FileStorage;
+using GiupViec3Mien.Services.Messaging;
+using MassTransit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,19 +16,19 @@ public class JobService : IJobService
     private readonly IJobRepository _jobRepository;
     private readonly IJobApplicationRepository _applicationRepository;
     private readonly IFileStorageService _fileStorageService;
-    private readonly IEmailService _emailService;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly IUserRepository _userRepository;
 
     public JobService(IJobRepository jobRepository, 
                       IJobApplicationRepository applicationRepository, 
                       IFileStorageService fileStorageService,
-                      IEmailService emailService,
+                      IPublishEndpoint publishEndpoint,
                       IUserRepository userRepository)
     {
         _jobRepository = jobRepository;
         _applicationRepository = applicationRepository;
         _fileStorageService = fileStorageService;
-        _emailService = emailService;
+        _publishEndpoint = publishEndpoint;
         _userRepository = userRepository;
     }
 
@@ -45,6 +47,25 @@ public class JobService : IJobService
 
         await _jobRepository.AddAsync(job);
         await _jobRepository.SaveChangesAsync();
+
+        // Point 4: Analytics
+        await _publishEndpoint.Publish(new AnalyticsEvent("JobCreated", employerId, $"Title: {job.Title}"));
+
+        // Point 2: Background Matching
+        await _publishEndpoint.Publish(new JobPostedEvent(
+            job.Id, 
+            job.Title, 
+            job.Latitude, 
+            job.Longitude, 
+            job.RequiredSkills
+        ));
+
+        // Point 1: Decoupled Email
+        var employer = await _userRepository.GetByIdAsync(employerId);
+        if (employer != null && !string.IsNullOrEmpty(employer.Email))
+        {
+            await _publishEndpoint.Publish(new SendEmailMessage(employer.Email, $"Job Posted: {job.Title}", $"Your job {job.Title} is now live."));
+        }
 
         return MapToResponse(job);
     }
@@ -80,6 +101,7 @@ public class JobService : IJobService
         string? cvUrl = null;
         if (request.Cv != null && request.Cv.Length > 0)
         {
+            // Simple validation remains in API
             var allowedExtensions = new[] { ".pdf", ".docx", ".txt", ".doc" };
             var extension = Path.GetExtension(request.Cv.FileName).ToLower();
             if (!allowedExtensions.Contains(extension))
@@ -87,53 +109,30 @@ public class JobService : IJobService
                 throw new Exception("File type not allowed. Please upload pdf, docx, txt, or doc.");
             }
 
+            // Point 3: File Processing could be offloaded too. 
+            // For now, we still upload here to get a URL, or move it to consumer?
+            // User said Point 3: "Use the API only to receive the file and save it to temporary storage. Queue a ProcessCVTask."
+            
             cvUrl = await _fileStorageService.UploadFileAsync(request.Cv);
         }
 
-        var application = new Domain.Entities.JobApplication
+        // Point 5: Handling Bursts - Publish task
+        var bidPrice = request.BidPrice > 0 ? request.BidPrice : job.Price;
+        await _publishEndpoint.Publish(new JobApplicationTask(userId, jobId, request.Message ?? "", bidPrice, cvUrl));
+
+        // Point 4: Analytics
+        await _publishEndpoint.Publish(new AnalyticsEvent("JobApplied", userId, $"JobId: {jobId}"));
+
+        return new JobApplicationResponse
         {
             JobId = jobId,
             ApplicantId = userId,
             Message = request.Message,
-            BidPrice = request.BidPrice > 0 ? request.BidPrice : job.Price,
-            CvUrl = cvUrl
+            BidPrice = bidPrice,
+            CvUrl = cvUrl,
+            AppliedAt = DateTime.UtcNow,
+            IsAccepted = false
         };
-
-        await _applicationRepository.AddAsync(application);
-        await _applicationRepository.SaveChangesAsync();
-
-        // Notify Employer via Email
-        if (job.Employer != null && !string.IsNullOrEmpty(job.Employer.Email))
-        {
-            try
-            {
-                var freelancer = await _userRepository.GetByIdAsync(userId);
-                string subject = $"New application for your job: {job.Title}";
-                string body = $@"
-                    <div style='font-family: Arial, sans-serif; max-width: 600px; line-height: 1.6;'>
-                        <h2 style='color: #2c3e50;'>New Job Application</h2>
-                        <p>Hi <strong>{job.Employer.FullName}</strong>,</p>
-                        <p>A freelancer has applied for your job <strong>""{job.Title}""</strong>.</p>
-                        <div style='margin: 20px 0; padding: 15px; border: 1px solid #eee; border-radius: 5px; background: #f9f9f9;'>
-                            <strong>Freelancer:</strong> {freelancer?.FullName ?? "Someone"}<br/>
-                            <strong>Bid Price:</strong> {application.BidPrice:N0} VND<br/>
-                            <strong>Message:</strong> {application.Message}
-                        </div>
-                        <p>Log in to your dashboard to review the application and contact the freelancer.</p>
-                        <div style='margin-top: 20px;'>
-                            <a href='#' style='background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Review Application</a>
-                        </div>
-                    </div>";
-
-                await _emailService.SendEmailAsync(job.Employer.Email, subject, body);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to send application notification email: {ex.Message}");
-            }
-        }
-
-        return MapToApplicationResponse(application);
     }
 
     public async Task<IEnumerable<JobApplicationResponse>> GetJobApplicationsAsync(Guid jobId)
@@ -175,32 +174,27 @@ public class JobService : IJobService
         await _applicationRepository.SaveChangesAsync();
         await _jobRepository.SaveChangesAsync();
 
-        // Notify Freelancer via Email
+        // Point 4: Analytics
+        await _publishEndpoint.Publish(new AnalyticsEvent("ApplicationAccepted", employerId, $"AppId: {applicationId}"));
+
+        // Notify Freelancer via Email (Point 1: Offloading)
         if (application.Applicant != null && !string.IsNullOrEmpty(application.Applicant.Email))
         {
-            try
-            {
-                string subject = $"Congratulations! Your application for '{job.Title}' has been accepted";
-                string body = $@"
-                    <div style='font-family: sans-serif; max-width: 600px; line-height: 1.6;'>
-                        <h2 style='color: #2e7d32;'>Good news!</h2>
-                        <p>Hi <strong>{application.Applicant.FullName}</strong>,</p>
-                        <p>Your application for the job <strong>""{job.Title}""</strong> has been accepted by <strong>{job.Employer?.FullName ?? "the client"}</strong>.</p>
-                        <p>The job status is now <strong>In Progress</strong>. You can now start communicating with the client directly in the app.</p>
-                        <div style='margin: 20px 0; padding: 15px; border-left: 5px solid #2e7d32; background: #e8f5e9;'>
-                            <strong>Job:</strong> {job.Title}<br/>
-                            <strong>Client:</strong> {job.Employer?.FullName ?? "N/A"}
-                        </div>
-                        <p>Good luck with your new assignment!</p>
-                    </div>";
+            string subject = $"Congratulations! Your application for '{job.Title}' has been accepted";
+            string body = $@"
+                <div style='font-family: sans-serif; max-width: 600px; line-height: 1.6;'>
+                    <h2 style='color: #2e7d32;'>Good news!</h2>
+                    <p>Hi <strong>{application.Applicant.FullName}</strong>,</p>
+                    <p>Your application for the job <strong>""{job.Title}""</strong> has been accepted by <strong>{job.Employer?.FullName ?? "the client"}</strong>.</p>
+                    <p>The job status is now <strong>In Progress</strong>. You can now start communicating with the client directly in the app.</p>
+                    <div style='margin: 20px 0; padding: 15px; border-left: 5px solid #2e7d32; background: #e8f5e9;'>
+                        <strong>Job:</strong> {job.Title}<br/>
+                        <strong>Client:</strong> {job.Employer?.FullName ?? "N/A"}
+                    </div>
+                    <p>Good luck with your new assignment!</p>
+                </div>";
 
-                await _emailService.SendEmailAsync(application.Applicant.Email, subject, body);
-            }
-            catch (Exception ex)
-            {
-                // Log error but don't fail the transaction
-                Console.WriteLine($"Failed to send acceptance email: {ex.Message}");
-            }
+            await _publishEndpoint.Publish(new SendEmailMessage(application.Applicant.Email, subject, body));
         }
 
         return MapToApplicationResponse(application);

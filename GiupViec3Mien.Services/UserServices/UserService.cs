@@ -80,4 +80,14 @@ public class UserService : IUserService
         user.UpdatedAt = DateTime.UtcNow;
         await _userRepository.SaveChangesAsync();
     }
+
+    public async Task UpdateEmailAsync(Guid userId, string email)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) throw new Exception("User not found.");
+
+        user.Email = email;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userRepository.SaveChangesAsync();
+    }
 }
