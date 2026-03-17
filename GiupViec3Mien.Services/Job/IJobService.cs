@@ -16,4 +16,5 @@ public interface IJobService
     Task<IEnumerable<JobApplicationResponse>> GetMyApplicationsAsync(Guid userId);
     Task<JobApplicationResponse?> GetMyApplicationForJobAsync(Guid userId, Guid jobId);
     Task<JobApplicationResponse?> AcceptApplicationAsync(Guid employerId, Guid applicationId);
+    Task<IEnumerable<JobResponse>> GetJobsBySkillsAsync(IEnumerable<string> skills);
 }

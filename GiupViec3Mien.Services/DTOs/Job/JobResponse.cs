@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GiupViec3Mien.Domain.Enums;
 
 namespace GiupViec3Mien.Services.DTOs.Job;
@@ -15,7 +16,7 @@ public class JobResponse
     public decimal Price { get; set; }
     public double Latitude { get; set; }
     public double Longitude { get; set; }
-    public string? RequiredSkills { get; set; }
+    public List<string>? RequiredSkills { get; set; }
     public JobStatus Status { get; set; }
     public int ApplicantCount { get; set; }
     public Guid? AssignedWorkerId { get; set; }

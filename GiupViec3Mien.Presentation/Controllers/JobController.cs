@@ -46,6 +46,17 @@ public class JobController : ControllerBase
         var jobs = await _jobService.GetAvailableJobsAsync();
         return Ok(jobs);
     }
+    
+    [HttpGet("filter-by-skills")]
+    public async Task<IActionResult> FilterBySkills([FromQuery] string skills)
+    {
+        if (string.IsNullOrEmpty(skills)) 
+            return await GetAvailableJobs();
+
+        var skillList = skills.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim());
+        var jobs = await _jobService.GetJobsBySkillsAsync(skillList);
+        return Ok(jobs);
+    }
 
     [HttpGet("my-jobs")]
     [Authorize]

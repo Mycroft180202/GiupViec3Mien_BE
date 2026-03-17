@@ -18,4 +18,5 @@ public class CreateJobRequest
 
     public double Latitude { get; set; }
     public double Longitude { get; set; }
+    public List<string>? RequiredSkills { get; set; }
 }

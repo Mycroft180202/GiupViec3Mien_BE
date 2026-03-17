@@ -300,6 +300,30 @@ API Endpoint	Method	Description
   "appliedAt": "2026-03-14T13:25:00Z",
   "isAccepted": false
 }
+
+GET /api/Job/filter-by-skills?skills=Cleaning,Cooking
+json
+[
+  {
+    "id": "ea3529f9-...",
+    "title": "Nấu ăn gia đình 4 người",
+    "requiredSkills": ["Cooking", "Housework"],
+    "status": 0,
+    "price": 200000,
+    "employerName": "Nguyễn Chủ Nhà",
+    "createdAt": "2026-03-17T03:19..."
+  },
+  {
+    "id": "df241582-...",
+    "title": "Dọn dẹp nhà cửa 4 tầng",
+    "requiredSkills": ["Cleaning", "Housework"],
+    "status": 0,
+    "price": 300000,
+    "employerName": "Nguyễn Chủ Nhà",
+    "createdAt": "2026-03-17T02:19..."
+  }
+]
+
 https://docs.google.com/document/d/1nO_z0R8Cgdnsjips-077gI0qupBH5_DsyDahjyakPEQ/edit?tab=t.0
 
 API Endpoint	Method	Description

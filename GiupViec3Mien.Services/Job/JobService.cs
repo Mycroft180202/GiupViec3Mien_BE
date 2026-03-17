@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
+using System.Text.Json;
 
 namespace GiupViec3Mien.Services.Job;
 
@@ -42,7 +43,8 @@ public class JobService : IJobService
             Location = request.Location,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
-            Price = request.Price
+            Price = request.Price,
+            RequiredSkills = request.RequiredSkills != null ? JsonSerializer.Serialize(request.RequiredSkills) : null
         };
 
         await _jobRepository.AddAsync(job);
@@ -218,6 +220,12 @@ public class JobService : IJobService
         };
     }
 
+    public async Task<IEnumerable<JobResponse>> GetJobsBySkillsAsync(IEnumerable<string> skills)
+    {
+        var jobs = await _jobRepository.GetJobsBySkillsAsync(skills);
+        return jobs.Select(MapToResponse);
+    }
+
     private JobResponse MapToResponse(Domain.Entities.Job job)
     {
         return new JobResponse
@@ -232,7 +240,9 @@ public class JobService : IJobService
             Price = job.Price,
             Latitude = job.Latitude,
             Longitude = job.Longitude,
-            RequiredSkills = job.RequiredSkills,
+            RequiredSkills = string.IsNullOrEmpty(job.RequiredSkills) 
+                ? null 
+                : JsonSerializer.Deserialize<List<string>>(job.RequiredSkills),
             Status = job.Status,
             ApplicantCount = job.Applications?.Count ?? 0,
             AssignedWorkerId = job.AssignedWorkerId,

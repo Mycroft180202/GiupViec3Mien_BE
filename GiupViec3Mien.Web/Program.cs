@@ -108,6 +108,9 @@ using (var scope = app.Services.CreateScope())
     {
         dbContext.Database.Migrate();
         Console.WriteLine("Database migrations applied successfully.");
+        
+        // Seed initial data
+        await GiupViec3Mien.Persistence.Seeders.SeedJobs.SeedAsync(app.Services);
     }
     catch (Exception ex)
     {
