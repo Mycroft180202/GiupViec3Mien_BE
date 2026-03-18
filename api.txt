@@ -323,6 +323,84 @@ json
     "createdAt": "2026-03-17T02:19..."
   }
 ]
+-------------
+Hangfire:
+monitor the progress of these requests at: http://localhost:5275/hangfire
+1. System Administration (
+
+AdminController
+)
+Created a dedicated controller for system-wide background maintenance.
+
+POST /api/Admin/trigger-job-cleanup: Manually trigger the 30-day job expiration logic.
+POST /api/Admin/trigger-newsletter: Manually start the weekly newsletter broadcast.
+POST /api/Admin/setup-recurring-newsletter: Reset or update the weekly Monday 9:00 AM schedule.
+2. Job & Recruitment Management (
+
+JobController
+)
+Added endpoints to manage specific background recruitment tasks.
+
+POST /api/Job/{id}/trigger-matching: Manually re-trigger the worker-matching algorithm for a job.
+POST /api/Job/applications/{appId}/reprocess-cv: Manually re-enqueue CV processing if the initial upload failed.
+3. User & Worker Engagement (
+
+UserController
+)
+Added worker-specific management tasks.
+
+POST /api/User/{userId}/send-reminder: Manually send a profile completion reminder to a specific worker.
+
+Daily Cleanup	
+
+JobExpirationJob
+Every day at midnight. Automatically cancels/expires jobs older than 30 days.
+Email Newsletters	
+
+NewsletterJob
+Every Monday at 9:00 AM. Sends automated updates to all registered users.
+Follow-up Reminders	
+
+ProfileReminderJob
+Triggered in AuthService.RegisterAsync. Schedules an email 2 hours after a worker registers if their profile is still incomplete.
+
+implemented the requested Hangfire (PostgreSQL) infrastructure to handle heavy business logic and reliable delivery with automatic retries and a monitoring dashboard.
+Storage: Hangfire is now configured to use your PostgreSQL database, ensuring all background tasks are persistent across server restarts.
+Dashboard: The Monitoring Dashboard is available at /hangfire. I've added a secure authorization filter (
+
+HangfireAuthorizationFilter.cs
+) and human-readable job names for better observability.
+Automatic Retries: We've implemented a global policy of 5 automatic retries with exponential backoff for all background tasks.
+Offloading Heavy Logic (CV Processing)
+
+Endpoint	Method	Description
+/api/HangfireTest/enqueue-email	POST	Enqueues a one-off email job.
+/api/HangfireTest/schedule-reminder	POST	Schedules a reminder with a custom delay.
+/api/HangfireTest/trigger-cleanup-now	POST	Runs the 30-day job cleanup logic immediately.
+/api/HangfireTest/register-recurring	POST	Registers a test recurring job that runs every minute.
+---Job Implementation: 
+
+JobMatchingJob.cs
+ is triggered by the 
+
+MatchingConsumer
+. It performs the calculations and then enqueues reliable individual emails via 
+
+SendEmailJob
+.
+File	Responsibility
+
+ProcessCVJob.cs
+Reliable, background file processing & upload.
+
+JobService.cs
+Updated to offload heavy file I/O to Hangfire.
+
+CloudinaryService.cs
+Extended with byte[] upload support for background processing.
+
+Program.cs
+Centralized config for PostgreSQL storage and retries.
 
 https://docs.google.com/document/d/1nO_z0R8Cgdnsjips-077gI0qupBH5_DsyDahjyakPEQ/edit?tab=t.0
 

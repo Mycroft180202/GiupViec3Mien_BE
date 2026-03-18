@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
 using System.Text.Json;
+using Hangfire;
 
 namespace GiupViec3Mien.Services.Job;
 
@@ -19,18 +20,21 @@ public class JobService : IJobService
     private readonly IFileStorageService _fileStorageService;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly IUserRepository _userRepository;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
     public JobService(IJobRepository jobRepository, 
                       IJobApplicationRepository applicationRepository, 
                       IFileStorageService fileStorageService,
                       IPublishEndpoint publishEndpoint,
-                      IUserRepository userRepository)
+                      IUserRepository userRepository,
+                      IBackgroundJobClient backgroundJobClient)
     {
         _jobRepository = jobRepository;
         _applicationRepository = applicationRepository;
         _fileStorageService = fileStorageService;
         _publishEndpoint = publishEndpoint;
         _userRepository = userRepository;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task<JobResponse> CreateJobAsync(Guid employerId, CreateJobRequest request)
@@ -111,11 +115,16 @@ public class JobService : IJobService
                 throw new Exception("File type not allowed. Please upload pdf, docx, txt, or doc.");
             }
 
-            // Point 3: File Processing could be offloaded too. 
-            // For now, we still upload here to get a URL, or move it to consumer?
-            // User said Point 3: "Use the API only to receive the file and save it to temporary storage. Queue a ProcessCVTask."
+            // Offload heavy logic: Read bytes and queue for reliable background upload
+            using var ms = new MemoryStream();
+            await request.Cv.CopyToAsync(ms);
+            var fileBytes = ms.ToArray();
             
-            cvUrl = await _fileStorageService.UploadFileAsync(request.Cv);
+            _backgroundJobClient.Enqueue<BackgroundJobs.ProcessCVJob>(j => 
+                j.ExecuteAsync(userId, jobId, fileBytes, request.Cv.FileName));
+            
+            // Note: Returning 'Pending' URL metadata as we've moved upload to background
+            cvUrl = "[Processing...]"; 
         }
 
         // Point 5: Handling Bursts - Publish task

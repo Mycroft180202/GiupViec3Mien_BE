@@ -18,6 +18,9 @@ using GiupViec3Mien.Services.Email;
 using GiupViec3Mien.Services.Messaging.Consumers;
 using MassTransit;
 using Microsoft.AspNetCore.OpenApi;
+using Hangfire;
+using Hangfire.PostgreSql;
+using GiupViec3Mien.Services.BackgroundJobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +54,32 @@ builder.Services.AddScoped<IChatService, ChatService>();
 // Email Configuration
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+// Hangfire Background Job Configuration
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options =>
+    {
+        options.UseNpgsqlConnection(connectionString);
+    })
+    .UseFilter(new AutomaticRetryAttribute { Attempts = 5 })); // Automatic Retries: Global limit of 5 attempts
+
+// Resource Control: Define specific queues for the server to process
+builder.Services.AddHangfireServer(options =>
+{
+    options.Queues = new[] { "high-priority", "email", "default" };
+    options.WorkerCount = Environment.ProcessorCount * 2; // Performance tuning
+});
+
+// Register Background Jobs
+builder.Services.AddScoped<IBackgroundJob, JobExpirationJob>();
+builder.Services.AddScoped<IBackgroundJob, NewsletterJob>();
+builder.Services.AddScoped<ProfileReminderJob>(); // For delayed scheduling
+builder.Services.AddScoped<SendEmailJob>(); // For one-off reliable emails
+builder.Services.AddScoped<JobMatchingJob>(); // For heavy-computational matching
+builder.Services.AddScoped<ProcessCVJob>(); // For reliable file processing
 
 // RabbitMQ (MassTransit) Configuration
 builder.Services.AddMassTransit(x =>
@@ -134,6 +163,17 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ChatHub>("/chatHub");
+
+// Hangfire Dashboard & Job Registration
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireAuthorizationFilter() }
+});
+
+using (var scope = app.Services.CreateScope())
+{
+    HangfireJobRegistrar.RegisterJobs(scope.ServiceProvider);
+}
 
 app.Run();
 

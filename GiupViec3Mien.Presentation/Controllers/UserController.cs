@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using GiupViec3Mien.Services.UserServices;
+using Hangfire;
+using GiupViec3Mien.Services.BackgroundJobs;
 
 namespace GiupViec3Mien.Presentation.Controllers;
 
@@ -16,10 +18,12 @@ namespace GiupViec3Mien.Presentation.Controllers;
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public UserController(IUserService userService)
+    public UserController(IUserService userService, IBackgroundJobClient backgroundJobClient)
     {
         _userService = userService;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     [HttpPost("uploadprofile")]
@@ -106,5 +110,18 @@ public class UserController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Manually send a profile completion reminder to a worker.
+    /// </summary>
+    [HttpPost("{userId}/send-reminder")]
+    [Authorize(Roles = "Admin")]
+    public IActionResult SendProfileReminder(Guid userId)
+    {
+        var jobId = _backgroundJobClient.Enqueue<ProfileReminderJob>(
+            x => x.SendReminderAsync(userId));
+            
+        return Ok(new { HangfireJobId = jobId, Message = "Profile completion reminder sent in background." });
     }
 }

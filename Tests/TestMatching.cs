@@ -20,6 +20,7 @@ public class MockJobRepository : IJobRepository
     public Task<Job?> GetLatestJobByEmployerAsync(Guid employerId) => Task.FromResult(Jobs.Where(j => j.EmployerId == employerId).OrderByDescending(j => j.CreatedAt).FirstOrDefault());
     public Task<IEnumerable<Job>> GetActiveJobsAsync() => Task.FromResult(Jobs.Where(j => j.Status == JobStatus.Open).AsEnumerable());
     public Task<IEnumerable<Job>> GetJobsByEmployerAsync(Guid employerId) => Task.FromResult(Jobs.Where(j => j.EmployerId == employerId).AsEnumerable());
+    public Task<IEnumerable<Job>> GetJobsBySkillsAsync(IEnumerable<string> skills) => Task.FromResult(Jobs.Where(j => !string.IsNullOrEmpty(j.RequiredSkills) && skills.Any(s => j.RequiredSkills.Contains(s))).AsEnumerable());
     public Task SaveChangesAsync() => Task.CompletedTask;
 }
 
@@ -29,6 +30,7 @@ public class MockUserRepository : IUserRepository
     public Task<User?> GetByPhoneAsync(string phone) => Task.FromResult(Users.FirstOrDefault(u => u.Phone == phone));
     public Task<User?> GetByIdAsync(Guid id) => Task.FromResult(Users.FirstOrDefault(u => u.Id == id));
     public Task<IEnumerable<User>> GetAllWorkersAsync() => Task.FromResult(Users.Where(u => u.Role == Role.Worker).AsEnumerable());
+    public Task<IEnumerable<User>> GetAllAsync() => Task.FromResult(Users.AsEnumerable());
     public Task AddAsync(User user) { Users.Add(user); return Task.CompletedTask; }
     public Task SaveChangesAsync() => Task.CompletedTask;
 }
@@ -50,6 +52,12 @@ public class Program
         var userRepo = new MockUserRepository();
         var reviewRepo = new MockReviewRepository();
         var matchingService = new MatchingService(jobRepo, userRepo, reviewRepo);
+
+        // --- HANGFIRE JOB TESTS ---
+        await HangfireJobTests.RunTests();
+
+        // --- ORIGINAL MATCHING TESTS ---
+        Console.WriteLine("\n[MatchingTest] Starting User Search Test...");
 
         // --- THE UNIQUE SEARCH PIVOT (Worker ID) ---
         var searchId = Guid.NewGuid();

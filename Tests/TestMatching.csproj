@@ -9,5 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="..\GiupViec3Mien.Domain\GiupViec3Mien.Domain.csproj" />
     <ProjectReference Include="..\GiupViec3Mien.Services\GiupViec3Mien.Services.csproj" />
+    <ProjectReference Include="..\GiupViec3Mien.Persistence\GiupViec3Mien.Persistence.csproj" />
   </ItemGroup>
 </Project>
