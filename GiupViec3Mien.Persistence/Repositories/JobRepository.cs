@@ -104,6 +104,45 @@ public class JobRepository : IJobRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Job>> SearchAsync(string? keyword, GiupViec3Mien.Domain.Enums.ServiceCategory? category, string? location, decimal? minPrice, decimal? maxPrice, GiupViec3Mien.Domain.Enums.JobTimingType? timing, GiupViec3Mien.Domain.Enums.PostType postType)
+    {
+        var query = _context.Jobs
+            .Include(j => j.Employer)
+            .Where(j => j.Status == Domain.Enums.JobStatus.Open && j.PostType == postType);
+
+        if (!string.IsNullOrEmpty(keyword))
+        {
+            query = query.Where(j => j.Title.Contains(keyword) || j.Description.Contains(keyword));
+        }
+
+        if (category.HasValue)
+        {
+            query = query.Where(j => j.ServiceCategory == category.Value);
+        }
+
+        if (!string.IsNullOrEmpty(location))
+        {
+            query = query.Where(j => j.Location.Contains(location));
+        }
+
+        if (minPrice.HasValue)
+        {
+            query = query.Where(j => j.Price >= minPrice.Value);
+        }
+
+        if (maxPrice.HasValue)
+        {
+            query = query.Where(j => j.Price <= maxPrice.Value);
+        }
+
+        if (timing.HasValue)
+        {
+            query = query.Where(j => j.TimingType == timing.Value);
+        }
+
+        return await query.OrderByDescending(j => j.CreatedAt).ToListAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

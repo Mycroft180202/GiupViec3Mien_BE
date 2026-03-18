@@ -126,6 +126,19 @@ Premium Subscription holders (Homeowners who purchased a package).
 Assigned Workers (Once a job is officially started).
 Admins (For mediation and support).
 ------
+2.1.1. Quản lý tài khoản người dùng
+Cho người dùng chung:
+Đăng ký tài khoản
+Đăng nhập
+Cập nhật hồ sơ cá nhân 
+Quản lý thông tin liên hệ
+
+System Dashboard: GET /api/Admin/stats provides real-time counts for Total Users, Active Jobs, Total Applications, and Locked Accounts.
+Service Package Management: Admins can now Create, Edit, and Delete subscription plans via api/Admin/packages. These plans define features like contact disclosure access and priority job placement.
+Account & Content Moderation: Admins have full authority to lock/unlock users and remove violating job posts with automated email alerts to the owners.
+2. Advanced Search & Matching (Req 2.2.3)
+Multi-Criteria Search: GET /api/Job/search supports filtering by Category, Price Range, Working Time (Full/Part-time), and Keyword
+------
 2.2.6. Quản lý hệ thống (Admin)
 Quản trị viên có thể:
 Quản lý tài khoản người dùng

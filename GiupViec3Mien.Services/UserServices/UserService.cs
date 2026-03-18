@@ -138,6 +138,35 @@ public class UserService : IUserService
         };
     }
 
+    public async Task UpdateProfileAsync(Guid userId, DTOs.User.UpdateUserProfileRequest request)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) throw new Exception("User not found.");
+
+        user.FullName = request.FullName;
+        user.Email = request.Email;
+        user.Gender = request.Gender;
+        user.DateOfBirth = request.DateOfBirth;
+        user.Latitude = request.Latitude;
+        user.Longitude = request.Longitude;
+        if (!string.IsNullOrEmpty(request.AvatarUrl)) user.AvatarUrl = request.AvatarUrl;
+        
+        if (user.Role == Domain.Enums.Role.Worker)
+        {
+            if (user.WorkerProfile == null)
+            {
+                user.WorkerProfile = new WorkerProfile { UserId = userId };
+            }
+            user.WorkerProfile.Bio = request.Bio;
+            user.WorkerProfile.ExperienceYears = request.ExperienceYears;
+            user.WorkerProfile.HourlyRate = request.HourlyRate;
+            user.WorkerProfile.UpdatedAt = DateTime.UtcNow;
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userRepository.SaveChangesAsync();
+    }
+
     public async Task<IEnumerable<User>> GetAllUsersAsync()
     {
         return await _userRepository.GetAllAsync();

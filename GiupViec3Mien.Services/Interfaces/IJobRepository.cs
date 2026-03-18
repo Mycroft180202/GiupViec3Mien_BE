@@ -15,5 +15,6 @@ public interface IJobRepository
     Task<IEnumerable<GiupViec3Mien.Domain.Entities.Job>> GetJobsByEmployerAsync(Guid employerId);
     Task<IEnumerable<GiupViec3Mien.Domain.Entities.Job>> GetJobsBySkillsAsync(IEnumerable<string> skills);
     Task<IEnumerable<GiupViec3Mien.Domain.Entities.Job>> GetAllAsync();
+    Task<IEnumerable<GiupViec3Mien.Domain.Entities.Job>> SearchAsync(string? keyword, GiupViec3Mien.Domain.Enums.ServiceCategory? category, string? location, decimal? minPrice, decimal? maxPrice, GiupViec3Mien.Domain.Enums.JobTimingType? timing, GiupViec3Mien.Domain.Enums.PostType postType);
     Task SaveChangesAsync();
 }

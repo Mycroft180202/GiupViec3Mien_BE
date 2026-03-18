@@ -108,6 +108,13 @@ public class JobController : ControllerBase
         var ads = await _jobService.GetWorkerAdsAsync();
         return Ok(ads);
     }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchJobs([FromQuery] JobSearchFilters filters)
+    {
+        var jobs = await _jobService.SearchJobsAsync(filters);
+        return Ok(jobs);
+    }
     
     [HttpGet("filter-by-skills")]
     public async Task<IActionResult> FilterBySkills([FromQuery] string skills)

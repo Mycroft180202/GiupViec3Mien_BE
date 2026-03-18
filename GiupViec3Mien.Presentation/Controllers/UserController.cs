@@ -125,6 +125,25 @@ public class UserController : ControllerBase
         return Ok(new { HangfireJobId = jobId, Message = "Profile completion reminder sent in background." });
     }
 
+    [HttpPost("profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateUserProfileRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+
+            var userId = Guid.Parse(userIdClaim);
+            await _userService.UpdateProfileAsync(userId, request);
+
+            return Ok(new { message = "Profile updated successfully." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("freelancer/{workerId}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetFreelancerInfo(Guid workerId)

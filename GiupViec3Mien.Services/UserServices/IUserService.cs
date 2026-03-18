@@ -15,6 +15,7 @@ public interface IUserService
     Task UpdateSkillsAsync(Guid userId, List<string> skills);
     Task UpdateEmailAsync(Guid userId, string email);
     Task<DTOs.User.WorkerInfoResponse?> GetWorkerInfoAsync(Guid workerId, Guid requesterId);
+    Task UpdateProfileAsync(Guid userId, DTOs.User.UpdateUserProfileRequest request);
     
     // Admin operations
     Task<IEnumerable<User>> GetAllUsersAsync();

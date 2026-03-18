@@ -393,6 +393,20 @@ public class JobService : IJobService
         return true;
     }
 
+    public async Task<IEnumerable<JobResponse>> SearchJobsAsync(JobSearchFilters filters)
+    {
+        var jobs = await _jobRepository.SearchAsync(
+            filters.Keyword,
+            filters.Category,
+            filters.Location,
+            filters.MinPrice,
+            filters.MaxPrice,
+            filters.Timing,
+            filters.PostType);
+
+        return jobs.Select(j => MapToResponse(j, false));
+    }
+
     public async Task<int> GetTotalApplicationCountAsync()
     {
         return await _applicationRepository.CountAsync();
