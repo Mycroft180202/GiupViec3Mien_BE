@@ -14,6 +14,12 @@ public class User
     public Role Role { get; set; }
     public bool IsGuest { get; set; } = false;
     public string? AvatarUrl { get; set; }
+    public bool HasPremiumAccess { get; set; } = false;
+    public DateTime? PremiumExpiry { get; set; }
+    public bool IsLocked { get; set; } = false;
+    
+    public GenderOption Gender { get; set; } = GenderOption.Any;
+    public DateTime? DateOfBirth { get; set; }
     
     public double Latitude { get; set; }
     public double Longitude { get; set; }

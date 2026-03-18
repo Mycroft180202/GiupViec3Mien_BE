@@ -1,31 +1,226 @@
 https://localhost:7004/api/Matching/{jobId}/topmatch
 [
   {
-    "EmployerId": "d2aaeb1e...",
-    "JobId": "0a8de53a-b82a-49da-9958-61de4165cbed", // Consistent ID
-    "JobTitle": "Best Job",
-    "EmployerName": "Employer Multi-Job",
-    "MatchScore": 65,
-    "DistanceKm": 0.02,
-    "AverageRating": 0,
-    "TrustLevel": "Low",
-    "IsVerified": true,
-    "BudgetFitScore": 100,
-    "MatchedSkills": ["Dọn dẹp", "Nấu ăn"]
+    "workerId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "matchScore": 95.5
   },
   {
-    "EmployerId": "0ac26da3...",
-    "JobId": "0a8de53a-b82a-49da-9958-61de4165cbed", // Same input search ID
-    "JobTitle": "Other Job",
-    "EmployerName": "Employer Single-Job",
-    "MatchScore": 45,
-    "DistanceKm": 3.31,
-    "AverageRating": 0,
-    "IsVerified": false,
-    "BudgetFitScore": 100,
-    "MatchedSkills": ["Dọn dẹp"]
+    "workerId": "7d21a5b8-...",
+    "matchScore": 88.2
   }
 ]
+Request: GET /api/User/freelancer/3fa85f64-5717-4562-b3fc-2c963f66afa6
+json
+{
+  "id": "3fa85f64...",
+  "fullName": "Le Thi B",
+  "phone": "0912345678",
+  "email": "lethib@example.com",
+  "avatarUrl": "https://cloudinary.com/...",
+  "gender": "Female",
+  "age": 32,
+  "latitude": 10.762622,
+  "longitude": 106.660172,
+  "bio": "Expert in housekeeping and childcare with 7 years of local experience.",
+  "experienceYears": 7,
+  "hourlyRate": 150000,
+  "verified": true,
+  "skills": ["Cooking", "Housekeeping", "Babysitting"],
+  "joinedAt": "2024-01-15T09:00:00Z"
+}
+
+---
+Chủ nhà có thể:
+Tạo tin đăng tuyển giúp việc
+Chỉnh sửa hoặc xóa tin đăng
+Xem danh sách ứng viên đã ứng tuyển
+        -	Ứng viên có thể:
+Tạo tin đăng tìm việc
+Chỉnh sửa hoặc xóa tin đăng
+Xem danh sách chủ nhà đã ứng tuyển 
+
+For Homeowners (Employers)
+Create Hiring Post: POST /api/Job to find helpers with specific criteria (Address, Age, Skills, Salary).
+Edit/Delete: PUT /api/Job/{id} and DELETE /api/Job/{id} (restricted to the post owner).
+Manage Applicants: GET /api/Job/{id}/applicants allows the homeowner to see a list of workers interested in their job.
+Note: Contact information is masked unless you have an active Premium Subscription.
+💼 For Freelancers (Workers)
+Create Seeking Ad: POST /api/Job/seeking to advertise availability and service type.
+Edit/Delete: PUT /api/Job/{id} and DELETE /api/Job/{id} to manage their own advertisements.
+Manage Leads: Freelancers use the same GET /api/Job/{id}/applicants on their own "Seeking" ads to see homeowners who have expressed interest in hiring them.
+
+Tin đăng bao gồm các thông tin:
+Tiêu đề công việc
+Loại công việc (Full-time, Part-time, theo lịch)
+Loại dịch vụ (giúp việc nhà, trông trẻ, chăm sóc người già,...)
+Mức lương
+Địa điểm làm việc
+Thời gian làm việc
+Giới tính
+Tuổi 
+Mô tả công việc
+Kỹ năng làm việc
+
+For Homeowners (Employers):
+Endpoint: POST /api/Job
+Creates a "Hiring" post to find helpers.
+For Freelancers (Workers):
+Endpoint: POST /api/Job/seeking
+Creates a "Seeking" advertisement to find work.
+📦 Standardized Information Fields
+Both types of posts capture the following comprehensive details as per your requirements:
+
+Field	Description	DTO Property
+Title	Job or working title	Title
+Job Type	Full-time, Part-time, Scheduled	TimingType
+Service Category	Housekeeping, Childcare, Elder care, etc.	ServiceCategory
+Salary/Price	Budget or expected rate	Price
+Location	Address and Geo-coordinates	Location, Lat, Long
+Working Time	Detailed schedule description	WorkingTimeDescription
+Gender	Preferred gender for the role	PreferredGender
+Age Range	Target age bracket (e.g., "20-40")	TargetAgeRange
+Job Description	Detailed requirements	Description
+Required Skills	List of specific skills (JSON format)	RequiredSkills
+------
+2.2.4. Ứng tuyển công việc
+Người giúp việc có thể ứng tuyển vào các công việc phù hợp.
+Sau khi ứng tuyển:
+Chủ nhà có thể xem danh sách ứng viên
+Chủ nhà có thể xem thông tin hồ sơ của ứng viên
+Tuy nhiên:
+Thông tin liên hệ của ứng viên sẽ bị ẩn
+Chủ nhà cần mua gói dịch vụ để xem thông tin liên hệ
+---
+Subscription System:
+
+Added HasPremiumAccess and PremiumExpiry to the 
+
+User
+ entity.
+This tracks which homeowners have paid for the service package to see full contact details.
+Contact Information Masking:
+
+When viewing a list of applicants (GET /api/Job/{id}/applicants) or a specific freelancer's profile (GET /api/User/freelancer/{workerId}), the phone and email address are automatically masked (e.g., 091****678, le***@gmail.com).
+Full Disclosure criteria: Information is only unmasked if:
+The requester is an Admin.
+The requester is the Worker themselves (viewing their own profile).
+The requester is an Employer with an active Premium Subscription.
+------
+2.2.5. Liên hệ giữa chủ nhà và người giúp việc
+Sau khi người giúp việc bấm quan tâm hoặc ứng tuyển, hệ thống sẽ:
+Hiển thị hotline của công ty
+Hỗ trợ kết nối giữa hai bên
+Trong trường hợp chủ nhà mua gói dịch vụ, hệ thống sẽ:
+Hiển thị hồ sơ của ứng viên
+
+Official Company Hotline:
+
+Added CompanyHotline to all job details and application responses.
+This ensures that as soon as a worker applies or a homeowner views an applicant, they have immediate access to the GiupViec3Mien Support Team for assistance.
+Smart Contact Disclosure (Gatekeeping):
+
+Phase 1 (Discovery): When browsing jobs or profiles, direct contact info (Phone/Email) is masked (e.g., 098****123).
+Phase 2 (Interaction): The system encourages the use of the platform and the official hotline for initial connections.
+Phase 3 (Premium/Safe Access): Full profiles and contact details are unmasked only for:
+Premium Subscription holders (Homeowners who purchased a package).
+Assigned Workers (Once a job is officially started).
+Admins (For mediation and support).
+------
+2.2.6. Quản lý hệ thống (Admin)
+Quản trị viên có thể:
+Quản lý tài khoản người dùng
+Quản lý tin đăng
+Xóa tin vi phạm
+Khóa tài khoản nếu cần thiết
+Theo dõi hoạt động hệ thống
+Quản lý các gói dịch vụ trên hệ thống 
+
+2.1.7 Dashboard và quản lý gói dịch vụ
+Admin có Dashboard quản lý hệ thống, bao gồm:
+Tổng số người dùng
+Tổng số tin đăng
+Số lượng ứng tuyển
+Thống kê hoạt động hệ thống
+Quản lý gói dịch vụ
+Admin có thể:
+Tạo gói dịch vụ
+Chỉnh sửa gói dịch vụ
+Xóa gói dịch vụ
+Các gói dịch vụ cho phép:
+Chủ nhà xem thông tin liên hệ của ứng viên
+Xem nhiều hồ sơ ứng viên hơn
+Ưu tiên hiển thị tin đăng
+
+
+User Management:
+List All Users: GET /api/Admin/users provides a comprehensive view of all accounts, including their role, registration date, and subscription status.
+Account Locking/Unlocking: POST /api/Admin/users/{id}/lock and unlock allow administrators to immediately suspend accounts violating community standards. Suspended users are automatically kicked out and blocked from logging back in.
+Job & Ad Moderation:
+Full Oversight: GET /api/Admin/jobs lists every hiring post and seeking ad on the platform.
+Violating Content Removal: DELETE /api/Admin/jobs/{id} allows admins to remove inappropriate posts. This action automatically triggers an email notification to the owner explaining the policy violation.
+System Health Dashboard:
+Real-time Stats: GET /api/Admin/stats provides a heartbeat of the platform (Total Users, Active Premium Subscriptions, Locked Accounts, etc.).
+
+------
+Endpoint	Feature
+GET /api/admin/users	List all accounts
+GET /api/admin/users/{id}	Full user detail
+PUT /api/admin/users/{id}	Update user (role, premium, locked, etc.)
+DELETE /api/admin/users/{id}	Permanently delete account
+POST /api/admin/users/{id}/lock	Khóa tài khoản
+POST /api/admin/users/{id}/unlock	Mở khóa tài khoản
+GET /api/admin/jobs	List all job posts
+DELETE /api/admin/jobs/{id}	Xóa tin vi phạm (with email notification)
+PATCH /api/admin/jobs/{id}/status	Override job status
+GET /api/admin/packages	List packages (incl. inactive)
+POST /api/admin/packages	Create package
+PUT /api/admin/packages/{id}	Update package
+PATCH /api/admin/packages/{id}/toggle-active	Toggle package on/off
+DELETE /api/admin/packages/{id}	Delete package
+GET /api/admin/stats	Full system dashboard (users/jobs/packages/apps breakdown)
+GET /api/admin/activity-logs	Paginated audit log
+GET /api/admin/activity-logs/{entityType}/{entityId}	Audit history for a specific entity
+POST /api/admin/trigger-job-cleanup	Manual Hangfire trigger
+POST /api/admin/trigger-newsletter	Manual Hangfire trigger
+------
+2.1.8 Bảng tin – Khóa đào tạo 
+Bảng tin (News Feed)
+Website cung cấp bảng tin để chia sẻ:
+Kinh nghiệm giúp việc
+Mẹo chăm sóc trẻ
+Mẹo chăm sóc người già
+Thông báo tuyển dụng
+…..
+Khóa đào tạo
+Hệ thống có thể cung cấp khóa đào tạo cho người giúp việc:
+Ví dụ:
+Kỹ năng chăm sóc trẻ
+Kỹ năng chăm sóc người cao tuổi
+Kỹ năng dọn dẹp nhà cửa
+
+GET /api/newsfeed — Public, paginated, filterable by category + search
+GET /api/newsfeed/{id} — Public detail + auto view count
+GET /api/newsfeed/admin — Admin: all posts incl. drafts
+POST /api/newsfeed — Admin: create post (draft or publish)
+PUT /api/newsfeed/{id} — Admin: update post
+DELETE /api/newsfeed/{id} — Admin: delete post
+POST /api/newsfeed/{id}/publish — Admin: publish draft
+POST /api/newsfeed/{id}/unpublish — Admin: revert to draft
+GET /api/courses — Public, paginated, filter by category/level/search
+GET /api/courses/{id} — Public detail; lesson content gated (preview / enrolled / free)
+POST /api/courses/{id}/enroll — Auth: enroll in course
+POST /api/courses/{id}/complete — Auth: mark completed
+GET /api/courses/my-courses — Auth: enrolled courses
+GET /api/courses/admin — Admin: all courses incl. unpublished
+POST /api/courses — Admin: create course
+PUT /api/courses/{id} — Admin: update course
+DELETE /api/courses/{id} — Admin: delete (cascade lessons + enrollments)
+POST /api/courses/{id}/publish — Admin: publish
+POST /api/courses/{id}/unpublish — Admin: unpublish
+POST /api/courses/{id}/lessons — Admin: add lesson
+PUT /api/courses/lessons/{lessonId} — Admin: update lesson
+DELETE /api/courses/lessons/{lessonId} — Admin: delete lesson
+------
 https://localhost:7004/api/Job/{jobId}/apply -POST
 Endpoint: POST http://localhost:5275/api/Job/{jobId}/apply
 Request Type: multipart/form-data
@@ -323,6 +518,22 @@ json
     "createdAt": "2026-03-17T02:19..."
   }
 ]
+
+Post Hiring Job	POST /api/Job	
+
+Employer
+Automatically sets type to Hiring.
+Post Seeking Ad	POST /api/Job/seeking	
+
+.
+Edit Post	PUT /api/Job/{id}	Owner	Updates Title, Description, Skills, etc.
+Delete Post	DELETE /api/Job/{id}	Owner	Permanently removes the entry.
+Browse Worker Ads	GET /api/Job/worker-ads	Any	Returns a list of all workers looking for jobs.
+My Seeking Ads	GET /api/Job/my-ads	
+
+Worker
+Returns only the current worker's ads.
+Track Interest	GET /api/Job/{id}/applicants	Owner	Returns list of people (Homeowners or Workers) who applied.
 -------------
 Hangfire:
 monitor the progress of these requests at: http://localhost:5275/hangfire

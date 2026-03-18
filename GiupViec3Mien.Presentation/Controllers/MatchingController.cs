@@ -60,8 +60,9 @@ public class MatchingController : ControllerBase
     {
         try
         {
-            var results = await _matchingService.GetBestJobsForWorkerAsync(jobId, limit);
-            return Ok(results);
+            var results = await _matchingService.GetBestMatchesForJobAsync(jobId, limit);
+            // Specifically returning a list of workerIds and scores as per request
+            return Ok(results.Select(r => new { r.WorkerId, r.MatchScore }));
         }
         catch (Exception ex)
         {

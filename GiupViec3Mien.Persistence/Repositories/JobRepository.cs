@@ -23,6 +23,11 @@ public class JobRepository : IJobRepository
         await _context.Jobs.AddAsync(job);
     }
 
+    public async Task DeleteAsync(Job job)
+    {
+        _context.Jobs.Remove(job);
+    }
+
     public async Task<Job?> GetByIdAsync(Guid id)
     {
         return await _context.Jobs.Include(j => j.Employer).FirstOrDefaultAsync(j => j.Id == id);
@@ -40,7 +45,16 @@ public class JobRepository : IJobRepository
     {
         return await _context.Jobs
             .Include(j => j.Employer)
-            .Where(j => j.Status == Domain.Enums.JobStatus.Open)
+            .Where(j => j.Status == Domain.Enums.JobStatus.Open && j.PostType == Domain.Enums.PostType.Hiring)
+            .OrderByDescending(j => j.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Job>> GetJobsByPostTypeAsync(GiupViec3Mien.Domain.Enums.PostType postType)
+    {
+        return await _context.Jobs
+            .Include(j => j.Employer)
+            .Where(j => j.PostType == postType && j.Status == Domain.Enums.JobStatus.Open)
             .OrderByDescending(j => j.CreatedAt)
             .ToListAsync();
     }
@@ -79,6 +93,15 @@ public class JobRepository : IJobRepository
                 return jobSkills != null && jobSkills.Any(s => skillList.Contains(s, StringComparer.OrdinalIgnoreCase));
             } catch { return false; }
         });
+    }
+
+    public async Task<IEnumerable<Job>> GetAllAsync()
+    {
+        return await _context.Jobs
+            .Include(j => j.Employer)
+            .Include(j => j.Applications)
+            .OrderByDescending(j => j.CreatedAt)
+            .ToListAsync();
     }
 
     public async Task SaveChangesAsync()

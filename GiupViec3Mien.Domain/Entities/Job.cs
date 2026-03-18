@@ -22,6 +22,14 @@ public class Job
     public decimal Price { get; set; }
     public JobStatus Status { get; set; } = JobStatus.Open;
 
+    public PostType PostType { get; set; } = PostType.Hiring;
+    public JobTimingType TimingType { get; set; } = JobTimingType.PartTime;
+    public ServiceCategory ServiceCategory { get; set; } = ServiceCategory.Housekeeping;
+    
+    public string? WorkingTimeDescription { get; set; } // e.g., "Sáng 8h-11h"
+    public GenderOption PreferredGender { get; set; } = GenderOption.Any;
+    public string? TargetAgeRange { get; set; } // e.g., "20-40"
+
     [Column(TypeName = "jsonb")]
     public string? RequiredSkills { get; set; } // JSON array of required skills
 

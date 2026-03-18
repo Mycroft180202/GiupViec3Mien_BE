@@ -14,6 +14,7 @@ using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using GiupViec3Mien.Presentation.Hubs;
 using GiupViec3Mien.Services.Chat;
+using GiupViec3Mien.Services.Subscription;
 using GiupViec3Mien.Services.Email;
 using GiupViec3Mien.Services.Messaging.Consumers;
 using MassTransit;
@@ -21,6 +22,8 @@ using Microsoft.AspNetCore.OpenApi;
 using Hangfire;
 using Hangfire.PostgreSql;
 using GiupViec3Mien.Services.BackgroundJobs;
+using GiupViec3Mien.Services.NewsFeed;
+using GiupViec3Mien.Services.Training;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +53,17 @@ builder.Services.AddScoped<IMatchingService, MatchingService>();
 builder.Services.AddScoped<IFileStorageService, CloudinaryService>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
+
+// News Feed
+builder.Services.AddScoped<INewsPostRepository, NewsPostRepository>();
+builder.Services.AddScoped<INewsService, NewsService>();
+
+// Training Courses
+builder.Services.AddScoped<ITrainingCourseRepository, TrainingCourseRepository>();
+builder.Services.AddScoped<ITrainingCourseService, TrainingCourseService>();
 
 // Email Configuration
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
@@ -206,12 +220,16 @@ internal sealed class BearerSecuritySchemeTransformer : IOpenApiDocumentTransfor
                 [new OpenApiSecuritySchemeReference("Bearer")] = new List<string>()
             };
 
-            foreach (var path in document.Paths.Values)
+            if (document.Paths != null)
             {
-                foreach (var operation in path.Operations.Values)
+                foreach (var path in document.Paths.Values)
                 {
-                    operation.Security ??= new List<OpenApiSecurityRequirement>();
-                    operation.Security.Add(securityRequirement);
+                    if (path?.Operations == null) continue;
+                    foreach (var operation in path.Operations.Values)
+                    {
+                        operation.Security ??= new List<OpenApiSecurityRequirement>();
+                        operation.Security.Add(securityRequirement);
+                    }
                 }
             }
         }

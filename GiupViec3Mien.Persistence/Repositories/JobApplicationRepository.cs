@@ -55,6 +55,11 @@ public class JobApplicationRepository : IJobApplicationRepository
             .FirstOrDefaultAsync(ja => ja.ApplicantId == applicantId && ja.JobId == jobId);
     }
 
+    public async Task<int> CountAsync()
+    {
+        return await _context.JobApplications.CountAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

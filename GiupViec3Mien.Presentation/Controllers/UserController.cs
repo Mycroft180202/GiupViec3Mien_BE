@@ -124,4 +124,17 @@ public class UserController : ControllerBase
             
         return Ok(new { HangfireJobId = jobId, Message = "Profile completion reminder sent in background." });
     }
+
+    [HttpGet("freelancer/{workerId}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetFreelancerInfo(Guid workerId)
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        Guid.TryParse(userIdString, out var requesterId);
+
+        var info = await _userService.GetWorkerInfoAsync(workerId, requesterId);
+        if (info == null) return NotFound(new { message = "Worker not found." });
+
+        return Ok(info);
+    }
 }

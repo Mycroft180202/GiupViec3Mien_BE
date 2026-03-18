@@ -4,6 +4,7 @@ using Hangfire;
 using GiupViec3Mien.Services.BackgroundJobs;
 using GiupViec3Mien.Services.DTOs.Job;
 using GiupViec3Mien.Services.Job;
+using GiupViec3Mien.Domain.Enums;
 using System;
 using System.Linq;
 using System.Security.Claims;
@@ -35,6 +36,8 @@ public class JobController : ControllerBase
             return Unauthorized(new { message = "Token không hợp lệ hoặc đã hết hạn." });
         }
 
+        request.PostType = PostType.Hiring;
+
         try
         {
             var response = await _jobService.CreateJobAsync(employerId, request);
@@ -46,11 +49,64 @@ public class JobController : ControllerBase
         }
     }
 
+    [HttpPost("seeking")]
+    [Authorize(Roles = "Worker,Admin")]
+    public async Task<IActionResult> CreateSeekingAd([FromBody] CreateJobRequest request)
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var workerId)) return Unauthorized();
+
+        request.PostType = PostType.Seeking;
+
+        try
+        {
+            var response = await _jobService.CreateJobAsync(workerId, request);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("{id}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateJob(Guid id, [FromBody] CreateJobRequest request)
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var userId)) return Unauthorized();
+
+        var response = await _jobService.UpdateJobAsync(userId, id, request);
+        if (response == null) return NotFound(new { message = "Entry not found or permission denied." });
+
+        return Ok(response);
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteJob(Guid id)
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var userId)) return Unauthorized();
+
+        var success = await _jobService.DeleteJobAsync(userId, id);
+        if (!success) return NotFound(new { message = "Entry not found or permission denied." });
+
+        return NoContent();
+    }
+
     [HttpGet("available")]
     public async Task<IActionResult> GetAvailableJobs()
     {
         var jobs = await _jobService.GetAvailableJobsAsync();
         return Ok(jobs);
+    }
+
+    [HttpGet("worker-ads")]
+    public async Task<IActionResult> GetWorkerAds()
+    {
+        var ads = await _jobService.GetWorkerAdsAsync();
+        return Ok(ads);
     }
     
     [HttpGet("filter-by-skills")]
@@ -75,10 +131,24 @@ public class JobController : ControllerBase
         return Ok(jobs);
     }
 
+    [HttpGet("my-ads")]
+    [Authorize]
+    public async Task<IActionResult> GetMyAds()
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var userId)) return Unauthorized();
+
+        var ads = await _jobService.GetMyAdsAsync(userId);
+        return Ok(ads);
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetJobDetails(Guid id)
     {
-        var job = await _jobService.GetJobDetailsAsync(id);
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        Guid.TryParse(userIdString, out var requesterId);
+
+        var job = await _jobService.GetJobDetailsAsync(id, requesterId);
         if (job == null) return NotFound(new { message = "Công việc không tồn tại." });
 
         return Ok(job);
@@ -106,9 +176,12 @@ public class JobController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetJobApplicants(Guid id)
     {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var requesterId)) return Unauthorized();
+
         try
         {
-            var applicants = await _jobService.GetJobApplicationsAsync(id);
+            var applicants = await _jobService.GetJobApplicationsAsync(id, requesterId);
             return Ok(applicants);
         }
         catch (Exception ex)

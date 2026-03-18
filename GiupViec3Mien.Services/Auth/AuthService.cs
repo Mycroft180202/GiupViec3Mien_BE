@@ -71,6 +71,11 @@ public class AuthService : IAuthService
             throw new Exception("Số điện thoại hoặc mật khẩu không đúng.");
         }
 
+        if (user.IsLocked)
+        {
+            throw new Exception("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+        }
+
         return CreateResponse(user);
     }
 

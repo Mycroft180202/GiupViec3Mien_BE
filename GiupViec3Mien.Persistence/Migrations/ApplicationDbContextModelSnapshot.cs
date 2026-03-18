@@ -23,6 +23,43 @@ namespace GiupViec3Mien.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.ActivityLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.ToTable("ActivityLogs");
+                });
+
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.ChatMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -55,6 +92,82 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.ToTable("ChatMessages");
                 });
 
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.CourseEnrollment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EnrolledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("CourseId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("CourseEnrollments");
+                });
+
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.CourseLesson", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AttachmentUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsPreview")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VideoUrl")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId", "Order");
+
+                    b.ToTable("CourseLessons");
+                });
+
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.Job", b =>
                 {
                     b.Property<Guid>("Id")
@@ -84,13 +197,28 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.Property<double>("Longitude")
                         .HasColumnType("double precision");
 
+                    b.Property<int>("PostType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PreferredGender")
+                        .HasColumnType("integer");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
 
                     b.Property<string>("RequiredSkills")
                         .HasColumnType("jsonb");
 
+                    b.Property<int>("ServiceCategory")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TargetAgeRange")
+                        .HasColumnType("text");
+
+                    b.Property<int>("TimingType")
                         .HasColumnType("integer");
 
                     b.Property<string>("Title")
@@ -99,6 +227,9 @@ namespace GiupViec3Mien.Persistence.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WorkingTimeDescription")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -145,6 +276,58 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.ToTable("JobApplications");
                 });
 
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.NewsPost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tags")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ViewCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("NewsPosts");
+                });
+
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.Review", b =>
                 {
                     b.Property<Guid>("Id")
@@ -181,6 +364,109 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.ToTable("Reviews");
                 });
 
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.SubscriptionPackage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdditionalBenefits")
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("CanViewApplicantContact")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MaxApplicationsView")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("PriorityJobPlacement")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SubscriptionPackages");
+                });
+
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.TrainingCourse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EnrollmentCount")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("RequiresPremium")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("TrainingCourses");
+                });
+
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -196,6 +482,9 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
@@ -203,7 +492,16 @@ namespace GiupViec3Mien.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("Gender")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("HasPremiumAccess")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsGuest")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLocked")
                         .HasColumnType("boolean");
 
                     b.Property<double>("Latitude")
@@ -219,6 +517,9 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("PremiumExpiry")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
@@ -269,6 +570,16 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.ToTable("WorkerProfiles");
                 });
 
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.ActivityLog", b =>
+                {
+                    b.HasOne("GiupViec3Mien.Domain.Entities.User", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Actor");
+                });
+
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.ChatMessage", b =>
                 {
                     b.HasOne("GiupViec3Mien.Domain.Entities.User", "Receiver")
@@ -286,6 +597,36 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.Navigation("Receiver");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.CourseEnrollment", b =>
+                {
+                    b.HasOne("GiupViec3Mien.Domain.Entities.TrainingCourse", "Course")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GiupViec3Mien.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.CourseLesson", b =>
+                {
+                    b.HasOne("GiupViec3Mien.Domain.Entities.TrainingCourse", "Course")
+                        .WithMany("Lessons")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
                 });
 
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.Job", b =>
@@ -325,6 +666,17 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.Navigation("Job");
                 });
 
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.NewsPost", b =>
+                {
+                    b.HasOne("GiupViec3Mien.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.Review", b =>
                 {
                     b.HasOne("GiupViec3Mien.Domain.Entities.Job", "Job")
@@ -352,6 +704,17 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.Navigation("Reviewer");
                 });
 
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.TrainingCourse", b =>
+                {
+                    b.HasOne("GiupViec3Mien.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.WorkerProfile", b =>
                 {
                     b.HasOne("GiupViec3Mien.Domain.Entities.User", "User")
@@ -366,6 +729,13 @@ namespace GiupViec3Mien.Persistence.Migrations
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.Job", b =>
                 {
                     b.Navigation("Applications");
+                });
+
+            modelBuilder.Entity("GiupViec3Mien.Domain.Entities.TrainingCourse", b =>
+                {
+                    b.Navigation("Enrollments");
+
+                    b.Navigation("Lessons");
                 });
 
             modelBuilder.Entity("GiupViec3Mien.Domain.Entities.User", b =>

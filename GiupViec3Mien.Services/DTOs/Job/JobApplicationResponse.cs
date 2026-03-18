@@ -10,9 +10,12 @@ public class JobApplicationResponse
     public decimal JobPrice { get; set; }
     public Guid ApplicantId { get; set; }
     public string ApplicantName { get; set; } = string.Empty;
+    public string? ApplicantPhone { get; set; }
+    public string? ApplicantEmail { get; set; }
     public string? Message { get; set; }
     public decimal BidPrice { get; set; }
     public string? CvUrl { get; set; }
     public DateTime AppliedAt { get; set; }
     public bool IsAccepted { get; set; }
+    public string CompanyHotline { get; set; } = "1900-xxxx (Giúp Việc 3 Miền Support)";
 }

@@ -32,62 +32,77 @@ public class MatchingService : IMatchingService
 
         // Get all workers from repository
         var workers = await _userRepository.GetAllWorkersAsync();
-
         var matches = new List<MatchResultDto>();
+
+        // Parse target age range (e.g., "20-40")
+        int? minAge = null;
+        int? maxAge = null;
+        if (!string.IsNullOrEmpty(job.TargetAgeRange))
+        {
+            var parts = job.TargetAgeRange.Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 2 && int.TryParse(parts[0], out var min) && int.TryParse(parts[1], out var max))
+            {
+                minAge = min;
+                maxAge = max;
+            }
+            else if (int.TryParse(job.TargetAgeRange, out var age))
+            {
+                minAge = age - 5;
+                maxAge = age + 5;
+            }
+        }
 
         foreach (var worker in workers)
         {
             var profile = worker.WorkerProfile!;
             
-            // 1. Distance Score (40%)
+            // 1. Distance Score (30%)
             double distance = CalculateDistance(job.Latitude, job.Longitude, worker.Latitude, worker.Longitude); 
-            
-            double distanceScore = 0;
-            if (distance <= 2) distanceScore = 40;
-            else if (distance <= 5) distanceScore = 30;
-            else if (distance <= 10) distanceScore = 15;
+            double distanceScore = distance <= 2 ? 30 : (distance <= 5 ? 20 : (distance <= 10 ? 10 : 0));
 
-            // 2. Skill Match (30%)
+            // 2. Skill Match (25%)
             var workerSkills = DeserializeSkills(profile.Skills);
             var jobRequiredSkills = DeserializeSkills(job.RequiredSkills);
+            List<string> matchedSkills = jobRequiredSkills.Any() 
+                ? workerSkills.Intersect(jobRequiredSkills, StringComparer.OrdinalIgnoreCase).ToList()
+                : workerSkills.Where(s => job.Title.Contains(s, StringComparison.OrdinalIgnoreCase) || job.Description.Contains(s, StringComparison.OrdinalIgnoreCase)).ToList();
             
-            List<string> matchedSkills;
-            if (jobRequiredSkills.Any())
+            double skillScore = matchedSkills.Any() ? (matchedSkills.Count >= 2 ? 25 : 15) : 0;
+
+            // 3. Gender Match (15%)
+            double genderScore = 0;
+            if (job.PreferredGender == Domain.Enums.GenderOption.Any || job.PreferredGender == worker.Gender)
             {
-                matchedSkills = workerSkills.Intersect(jobRequiredSkills, StringComparer.OrdinalIgnoreCase).ToList();
-            }
-            else
-            {
-                matchedSkills = workerSkills.Where(s => job.Title.Contains(s, StringComparison.OrdinalIgnoreCase) || job.Description.Contains(s, StringComparison.OrdinalIgnoreCase)).ToList();
-            }
-            
-            double skillScore = 0;
-            if (matchedSkills.Any())
-            {
-                skillScore = (matchedSkills.Count >= 2) ? 30 : 15;
+                genderScore = 15;
             }
 
-            // 3. Rating Score (15%)
+            // 4. Age Match (15%)
+            double ageScore = 0;
+            int? workerAge = null;
+            if (worker.DateOfBirth.HasValue)
+            {
+                workerAge = DateTime.Today.Year - worker.DateOfBirth.Value.Year;
+                if (worker.DateOfBirth.Value.Date > DateTime.Today.AddYears(-workerAge.Value)) workerAge--;
+
+                if (minAge.HasValue && maxAge.HasValue)
+                {
+                    if (workerAge >= minAge && workerAge <= maxAge) ageScore = 15;
+                    else if (workerAge >= minAge - 5 && workerAge <= maxAge + 5) ageScore = 7;
+                }
+                else ageScore = 10; // Default score for having age if no range set
+            }
+            else if (!minAge.HasValue) ageScore = 10; // Neutral if no age info on either side
+
+            // 5. Experience Score (10%)
+            double experienceScore = profile.ExperienceYears >= 5 ? 10 : (profile.ExperienceYears >= 2 ? 7 : (profile.ExperienceYears >= 1 ? 4 : 1));
+            if (profile.Verified) experienceScore += 2; // Bonus for verified
+
+            // 6. Rating Score (5%)
             var reviews = await _reviewRepository.GetByRevieweeIdAsync(worker.Id);
             double avgRating = reviews.Any() ? reviews.Average(r => r.Rating) : 0;
-            double ratingScore = avgRating * 3;
+            double ratingScore = avgRating; // max 5
 
-            // 4. Experience & Trust (10%)
-            double trustScore = 0;
-            if (profile.Verified) trustScore += 5;
-            if (profile.ExperienceYears > 5) trustScore += 5;
-            else if (profile.ExperienceYears >= 2) trustScore += 3;
-            else trustScore += 1;
-
-            // 5. Budget Fit (5%)
-            double budgetScore = 0;
-            if (job.Price > 0 && profile.HourlyRate > 0)
-            {
-                decimal ratio = profile.HourlyRate / job.Price;
-                if (ratio >= 0.8m && ratio <= 1.2m) budgetScore = 5;
-            }
-
-            double totalScore = distanceScore + skillScore + ratingScore + trustScore + budgetScore;
+            double totalScore = distanceScore + skillScore + genderScore + ageScore + experienceScore + ratingScore;
 
             matches.Add(new MatchResultDto
             {
@@ -95,6 +110,8 @@ public class MatchingService : IMatchingService
                 FullName = worker.FullName,
                 AvatarUrl = worker.AvatarUrl,
                 MatchScore = Math.Round(totalScore, 2),
+                Gender = worker.Gender.ToString(),
+                Age = workerAge,
                 DistanceKm = Math.Round(distance, 2),
                 AverageRating = Math.Round(avgRating, 1),
                 ReviewCount = reviews.Count(),
@@ -205,7 +222,7 @@ public class MatchingService : IMatchingService
         foreach (var group in employerGroups)
         {
             var employerId = group.Key;
-            EmployerMatchResultDto bestMatchForThisEmployer = null;
+            EmployerMatchResultDto? bestMatchForThisEmployer = null;
             double highestScore = -1;
 
             foreach (var job in group)

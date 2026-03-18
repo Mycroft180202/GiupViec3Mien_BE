@@ -8,6 +8,8 @@ public class MatchResultDto
     public string FullName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
     public double MatchScore { get; set; }
+    public string? Gender { get; set; }
+    public int? Age { get; set; }
     public double DistanceKm { get; set; }
     public double AverageRating { get; set; }
     public int TotalJobsPosted { get; set; }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using GiupViec3Mien.Domain.Enums;
 
 namespace GiupViec3Mien.Services.DTOs.Job;
 
@@ -19,4 +20,12 @@ public class CreateJobRequest
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public List<string>? RequiredSkills { get; set; }
+
+    public PostType PostType { get; set; } = PostType.Hiring;
+    public JobTimingType TimingType { get; set; } = JobTimingType.PartTime;
+    public ServiceCategory ServiceCategory { get; set; } = ServiceCategory.Housekeeping;
+    
+    public string? WorkingTimeDescription { get; set; }
+    public GenderOption PreferredGender { get; set; } = GenderOption.Any;
+    public string? TargetAgeRange { get; set; }
 }
