@@ -13,5 +13,6 @@ public interface IJobApplicationRepository
     Task<IEnumerable<JobApplication>> GetByApplicantIdAsync(Guid applicantId);
     Task<JobApplication?> GetByApplicantAndJobAsync(Guid applicantId, Guid jobId);
     Task<int> CountAsync();
+    Task<IEnumerable<JobApplication>> GetCreatedSinceAsync(DateTime date);
     Task SaveChangesAsync();
 }

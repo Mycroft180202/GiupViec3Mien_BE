@@ -69,6 +69,9 @@ builder.Services.AddScoped<ITrainingCourseService, TrainingCourseService>();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// Background Jobs
+builder.Services.AddScoped<IBackgroundJob, WeeklySummaryJob>();
+
 // Hangfire Background Job Configuration
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)

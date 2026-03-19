@@ -60,6 +60,16 @@ public class JobApplicationRepository : IJobApplicationRepository
         return await _context.JobApplications.CountAsync();
     }
 
+    public async Task<IEnumerable<JobApplication>> GetCreatedSinceAsync(DateTime date)
+    {
+        return await _context.JobApplications
+            .Include(ja => ja.Job)
+            .Include(ja => ja.Applicant)
+            .Where(ja => ja.CreatedAt >= date)
+            .OrderByDescending(ja => ja.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

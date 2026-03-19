@@ -143,6 +143,15 @@ public class JobRepository : IJobRepository
         return await query.OrderByDescending(j => j.CreatedAt).ToListAsync();
     }
 
+    public async Task<IEnumerable<Job>> GetCreatedSinceAsync(DateTime date)
+    {
+        return await _context.Jobs
+            .Include(j => j.Employer)
+            .Where(j => j.CreatedAt >= date)
+            .OrderByDescending(j => j.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
