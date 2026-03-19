@@ -65,8 +65,8 @@ public class JobApplicationRepository : IJobApplicationRepository
         return await _context.JobApplications
             .Include(ja => ja.Job)
             .Include(ja => ja.Applicant)
-            .Where(ja => ja.CreatedAt >= date)
-            .OrderByDescending(ja => ja.CreatedAt)
+            .Where(ja => ja.AppliedAt >= date)
+            .OrderByDescending(ja => ja.AppliedAt)
             .ToListAsync();
     }
 
