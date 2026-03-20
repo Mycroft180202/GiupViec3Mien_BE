@@ -48,6 +48,16 @@ public class JobApplicationRepository : IJobApplicationRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<JobApplication>> GetByEmployerIdAsync(Guid employerId)
+    {
+        return await _context.JobApplications
+            .Include(ja => ja.Job)
+            .Include(ja => ja.Applicant)
+            .Where(ja => ja.Job.EmployerId == employerId)
+            .OrderByDescending(ja => ja.AppliedAt)
+            .ToListAsync();
+    }
+
     public async Task<JobApplication?> GetByApplicantAndJobAsync(Guid applicantId, Guid jobId)
     {
         return await _context.JobApplications

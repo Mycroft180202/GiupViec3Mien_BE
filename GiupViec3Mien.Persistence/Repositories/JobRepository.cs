@@ -78,14 +78,8 @@ public class JobRepository : IJobRepository
         var skillList = skills.ToList();
         if (!skillList.Any()) return await query.ToListAsync();
 
-        // In PostgreSQL, for a JSONB array, we can use the ?| operator (any of these exist)
-        // Since we are using EF Core, we can use EF.Functions or a raw SQL filter if needed.
-        // For now, let's use a server-side string check that works with JSON array format:
-        // WHERE "RequiredSkills" LIKE '%"skill1"%' OR "RequiredSkills" LIKE '%"skill2"%'
-        
         var results = await query.ToListAsync();
         
-        // Final filter in memory to ensure correct JSON matching (since LIKE is risky with partial words)
         return results.Where(j => {
             if (string.IsNullOrEmpty(j.RequiredSkills)) return false;
             try {
@@ -148,6 +142,15 @@ public class JobRepository : IJobRepository
         return await _context.Jobs
             .Include(j => j.Employer)
             .Where(j => j.CreatedAt >= date)
+            .OrderByDescending(j => j.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Job>> GetByAssignedWorkerIdAsync(Guid workerId)
+    {
+        return await _context.Jobs
+            .Include(j => j.Employer)
+            .Where(j => j.AssignedWorkerId == workerId && (j.Status == Domain.Enums.JobStatus.Open || j.Status == Domain.Enums.JobStatus.InProgress))
             .OrderByDescending(j => j.CreatedAt)
             .ToListAsync();
     }

@@ -191,4 +191,65 @@ public class SeedController : ControllerBase
             employers = new[] { emp1.FullName, emp2.FullName, emp3.FullName } 
         });
     }
+
+    [HttpPost("applicants")]
+    public async Task<IActionResult> SeedApplicants()
+    {
+        // 1. Find the default employer (0901234567)
+        var employer = await _context.Users.FirstOrDefaultAsync(u => u.Phone == "0901234567");
+        if (employer == null)
+        {
+            employer = new User { Phone = "0901234567", FullName = "Nguyễn Văn Chủ Nhà", Role = Role.Employer, PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123") };
+            await _context.Users.AddAsync(employer);
+            await _context.SaveChangesAsync();
+        }
+
+        // 2. Find a worker (0987654321)
+        var worker = await _context.Users.FirstOrDefaultAsync(u => u.Phone == "0987654321");
+        if (worker == null)
+        {
+            worker = new User { Phone = "0987654321", FullName = "Trần Thị Người Làm", Role = Role.Worker, PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123") };
+            await _context.Users.AddAsync(worker);
+            await _context.SaveChangesAsync();
+        }
+
+        // 3. Create a test job if not exists
+        var job = await _context.Jobs.FirstOrDefaultAsync(j => j.EmployerId == employer.Id && j.Title == "Tuyển người dọn dẹp căn hộ (Seed Data)");
+        if (job == null)
+        {
+            job = new Job
+            {
+                EmployerId = employer.Id,
+                Title = "Tuyển người dọn dẹp căn hộ (Seed Data)",
+                Description = "Dọn dẹp căn hộ 3 phòng ngủ tại Q7, làm việc 4 tiếng/ngày.",
+                Location = "Quận 7, TP.HCM",
+                Price = 180000,
+                Status = JobStatus.Open,
+                PostType = PostType.Hiring,
+                ServiceCategory = ServiceCategory.Housekeeping,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _context.Jobs.AddAsync(job);
+            await _context.SaveChangesAsync();
+        }
+
+        // 4. Create an application if not exists
+        var exists = await _context.JobApplications.AnyAsync(a => a.JobId == job.Id && a.ApplicantId == worker.Id);
+        if (!exists)
+        {
+            var application = new JobApplication
+            {
+                JobId = job.Id,
+                ApplicantId = worker.Id,
+                Message = "Chào chị, em có 5 năm kinh nghiệm dọn dẹp căn hộ cao cấp. Em rảnh các buổi sáng trong tuần, mong được chị nhận việc.",
+                BidPrice = 175000,
+                AppliedAt = DateTime.UtcNow,
+                IsAccepted = false
+            };
+            await _context.JobApplications.AddAsync(application);
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new { message = "Sample application data seeded successfully for 0901234567" });
+    }
 }

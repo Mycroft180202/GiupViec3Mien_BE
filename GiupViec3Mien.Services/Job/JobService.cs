@@ -153,6 +153,12 @@ public class JobService : IJobService
         return jobs.Select(j => MapToResponse(j, true)); // Owner viewing
     }
 
+    public async Task<IEnumerable<JobResponse>> GetJobsByWorkerAsync(Guid workerId)
+    {
+        var jobs = await _jobRepository.GetByAssignedWorkerIdAsync(workerId);
+        return jobs.Select(j => MapToResponse(j, workerId == j.AssignedWorkerId)); // Pass workerId for full access if assigned
+    }
+
     public async Task<IEnumerable<JobResponse>> GetMyAdsAsync(Guid userId)
     {
         // For ads, EmployerId in DB is used as OwnerId
@@ -268,6 +274,12 @@ public class JobService : IJobService
     {
         var applications = await _applicationRepository.GetByApplicantIdAsync(userId);
         return applications.Select(a => MapToApplicationResponse(a, true));
+    }
+
+    public async Task<IEnumerable<JobApplicationResponse>> GetReceivedApplicationsAsync(Guid employerId)
+    {
+        var applications = await _applicationRepository.GetByEmployerIdAsync(employerId);
+        return applications.Select(a => MapToApplicationResponse(a, true)); // Owner accessing
     }
 
     public async Task<JobApplicationResponse?> GetMyApplicationForJobAsync(Guid userId, Guid jobId)

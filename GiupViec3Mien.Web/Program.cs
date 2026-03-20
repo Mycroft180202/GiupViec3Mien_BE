@@ -69,8 +69,7 @@ builder.Services.AddScoped<ITrainingCourseService, TrainingCourseService>();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// Background Jobs
-builder.Services.AddScoped<IBackgroundJob, WeeklySummaryJob>();
+// builder.Services.AddScoped<IBackgroundJob, WeeklySummaryJob>(); // Disabled weekly summary/newsletter
 
 // Hangfire Background Job Configuration
 builder.Services.AddHangfire(configuration => configuration
@@ -92,7 +91,7 @@ builder.Services.AddHangfireServer(options =>
 
 // Register Background Jobs
 builder.Services.AddScoped<IBackgroundJob, JobExpirationJob>();
-builder.Services.AddScoped<IBackgroundJob, NewsletterJob>();
+// builder.Services.AddScoped<IBackgroundJob, NewsletterJob>(); // Disabled weekly newsletter
 builder.Services.AddScoped<ProfileReminderJob>(); // For delayed scheduling
 builder.Services.AddScoped<SendEmailJob>(); // For one-off reliable emails
 builder.Services.AddScoped<JobMatchingJob>(); // For heavy-computational matching
@@ -144,7 +143,29 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.SetIsOriginAllowed(origin => true) // Allow any origin for development
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.SetIsOriginAllowed(origin => true)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
+
+app.UseRouting();
+app.UseCors();
+
 
 // Automatically apply migrations
 using (var scope = app.Services.CreateScope())

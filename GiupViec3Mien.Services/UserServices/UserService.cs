@@ -54,6 +54,13 @@ public class UserService : IUserService
         await _userRepository.SaveChangesAsync();
     }
 
+    public async Task<AdminUserDetailResponse?> GetProfileAsync(Guid userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) return null;
+        return MapToAdminDetail(user);
+    }
+
     public async Task UpdateSkillsAsync(Guid userId, List<string> skills)
     {
         var user = await _userRepository.GetByIdAsync(userId);

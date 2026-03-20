@@ -12,6 +12,7 @@ public interface IUserService
 {
     Task<string> UploadProfileImageAsync(Guid userId, IFormFile file);
     Task UpdateProfileImageUrlAsync(Guid userId, string imgUrl);
+    Task<AdminUserDetailResponse?> GetProfileAsync(Guid userId);
     Task UpdateSkillsAsync(Guid userId, List<string> skills);
     Task UpdateEmailAsync(Guid userId, string email);
     Task<DTOs.User.WorkerInfoResponse?> GetWorkerInfoAsync(Guid workerId, Guid requesterId);

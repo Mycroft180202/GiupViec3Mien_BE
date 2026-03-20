@@ -125,6 +125,26 @@ public class UserController : ControllerBase
         return Ok(new { HangfireJobId = jobId, Message = "Profile completion reminder sent in background." });
     }
 
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfile()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+
+            var userId = Guid.Parse(userIdClaim);
+            var profile = await _userService.GetProfileAsync(userId);
+            if (profile == null) return NotFound(new { message = "User not found." });
+
+            return Ok(profile);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateUserProfileRequest request)
     {

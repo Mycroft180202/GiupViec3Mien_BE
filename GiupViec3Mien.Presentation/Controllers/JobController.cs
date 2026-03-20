@@ -204,6 +204,12 @@ public class JobController : ControllerBase
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdString, out var userId)) return Unauthorized();
 
+        if (User.IsInRole("Employer"))
+        {
+            var received = await _jobService.GetReceivedApplicationsAsync(userId);
+            return Ok(received);
+        }
+
         var applications = await _jobService.GetMyApplicationsAsync(userId);
         return Ok(applications);
     }

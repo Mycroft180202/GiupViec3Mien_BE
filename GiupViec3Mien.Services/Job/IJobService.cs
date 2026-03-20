@@ -17,11 +17,13 @@ public interface IJobService
     
     Task<JobResponse?> GetJobDetailsAsync(Guid jobId, Guid requesterId);
     Task<IEnumerable<JobResponse>> GetJobsByEmployerAsync(Guid employerId);
+    Task<IEnumerable<JobResponse>> GetJobsByWorkerAsync(Guid workerId);
     Task<IEnumerable<JobResponse>> GetMyAdsAsync(Guid userId);
 
     Task<JobApplicationResponse> ApplyToJobAsync(Guid userId, Guid jobId, ApplyJobRequest request);
     Task<IEnumerable<JobApplicationResponse>> GetJobApplicationsAsync(Guid jobId, Guid requesterId);
     Task<IEnumerable<JobApplicationResponse>> GetMyApplicationsAsync(Guid userId);
+    Task<IEnumerable<JobApplicationResponse>> GetReceivedApplicationsAsync(Guid employerId);
     Task<JobApplicationResponse?> GetMyApplicationForJobAsync(Guid userId, Guid jobId);
     Task<JobApplicationResponse?> AcceptApplicationAsync(Guid employerId, Guid applicationId);
     Task<IEnumerable<JobResponse>> GetJobsBySkillsAsync(IEnumerable<string> skills);
