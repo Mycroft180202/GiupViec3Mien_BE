@@ -278,4 +278,23 @@ public class JobController : ControllerBase
 
         return Ok(new { HangfireJobId = jobId, Message = "CV re-processing started." });
     }
+
+    /// <summary>
+    /// Manually trigger re-indexing of all jobs in Elasticsearch from PostgreSQL.
+    /// Restricted to administrators.
+    /// </summary>
+    [HttpPost("reindex-elasticsearch")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ReindexElasticsearch()
+    {
+        try
+        {
+            await _jobService.ReindexAllJobsAsync();
+            return Ok(new { message = "Elasticsearch re-indexing completed successfully." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Re-indexing failed: {ex.Message}" });
+        }
+    }
 }

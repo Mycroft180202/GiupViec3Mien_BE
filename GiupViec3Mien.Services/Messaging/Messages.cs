@@ -19,3 +19,24 @@ public record JobApplicationTask(Guid UserId, Guid JobId, string Message, decima
 
 // 6. Chat Persistence & Notifications
 public record MessageSentEvent(Guid SenderId, Guid ReceiverId, string Message, string RoomId);
+
+// 7. Elasticsearch Data Synchronization
+public record JobIndexMessage(
+    Guid JobId, 
+    string Title, 
+    string Description, 
+    string Category, 
+    decimal Price, 
+    double Lat, 
+    double Lon, 
+    string? RequiredSkills, 
+    string Status, 
+    string PostType, 
+    DateTime CreatedAt,
+    Guid EmployerId,
+    string EmployerName,
+    string? EmployerAvatarUrl,
+    int ApplicantCount
+);
+
+public record JobDeleteMessage(Guid JobId);

@@ -7,6 +7,7 @@ using GiupViec3Mien.Services.FileStorage;
 using GiupViec3Mien.Services.UserServices;
 using GiupViec3Mien.Services.Matching;
 using GiupViec3Mien.Services.Interfaces;
+using GiupViec3Mien.Services.Elastic;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -24,6 +25,7 @@ using Hangfire.PostgreSql;
 using GiupViec3Mien.Services.BackgroundJobs;
 using GiupViec3Mien.Services.NewsFeed;
 using GiupViec3Mien.Services.Training;
+using Elastic.Clients.Elasticsearch;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,6 +58,7 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
+builder.Services.AddScoped<IJobSearchService, JobSearchService>();
 
 // News Feed
 builder.Services.AddScoped<INewsPostRepository, NewsPostRepository>();
@@ -97,6 +100,16 @@ builder.Services.AddScoped<SendEmailJob>(); // For one-off reliable emails
 builder.Services.AddScoped<JobMatchingJob>(); // For heavy-computational matching
 builder.Services.AddScoped<ProcessCVJob>(); // For reliable file processing
 
+// Configure Elasticsearch Client
+var esSettings = builder.Configuration.GetSection("Elasticsearch");
+var esUrl = esSettings["Url"] ?? "http://localhost:9200";
+var esDefaultIndex = esSettings["DefaultIndex"] ?? "jobs";
+
+var clientSettings = new ElasticsearchClientSettings(new Uri(esUrl))
+    .DefaultIndex(esDefaultIndex);
+
+builder.Services.AddSingleton(new ElasticsearchClient(clientSettings));
+
 // RabbitMQ (MassTransit) Configuration
 builder.Services.AddMassTransit(x =>
 {
@@ -106,6 +119,7 @@ builder.Services.AddMassTransit(x =>
     x.AddConsumer<AnalyticsConsumer>();
     x.AddConsumer<ApplicationConsumer>();
     x.AddConsumer<ChatConsumer>();
+    x.AddConsumer<JobElasticSyncConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {

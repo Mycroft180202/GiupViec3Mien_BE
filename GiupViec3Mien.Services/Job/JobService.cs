@@ -2,6 +2,8 @@ using GiupViec3Mien.Services.DTOs.Job;
 using GiupViec3Mien.Services.Interfaces;
 using GiupViec3Mien.Services.FileStorage;
 using GiupViec3Mien.Services.Messaging;
+using GiupViec3Mien.Services.Elastic;
+using Elastic.Clients.Elasticsearch;
 using MassTransit;
 using System;
 using System.Collections.Generic;
@@ -21,13 +23,15 @@ public class JobService : IJobService
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly IUserRepository _userRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly GiupViec3Mien.Services.Elastic.IJobSearchService _jobSearchService;
 
     public JobService(IJobRepository jobRepository, 
                       IJobApplicationRepository applicationRepository, 
                       IFileStorageService fileStorageService,
                       IPublishEndpoint publishEndpoint,
                       IUserRepository userRepository,
-                      IBackgroundJobClient backgroundJobClient)
+                      IBackgroundJobClient backgroundJobClient,
+                      GiupViec3Mien.Services.Elastic.IJobSearchService jobSearchService)
     {
         _jobRepository = jobRepository;
         _applicationRepository = applicationRepository;
@@ -35,6 +39,7 @@ public class JobService : IJobService
         _publishEndpoint = publishEndpoint;
         _userRepository = userRepository;
         _backgroundJobClient = backgroundJobClient;
+        _jobSearchService = jobSearchService;
     }
 
     public async Task<JobResponse> CreateJobAsync(Guid employerId, CreateJobRequest request)
@@ -79,6 +84,13 @@ public class JobService : IJobService
             await _publishEndpoint.Publish(new SendEmailMessage(employer.Email, $"Job Posted: {job.Title}", $"Your job {job.Title} is now live."));
         }
 
+        // Elasticsearch Sync
+        await _publishEndpoint.Publish(new JobIndexMessage(
+            job.Id, job.Title, job.Description, job.ServiceCategory.ToString(), job.Price, 
+            job.Latitude, job.Longitude, job.RequiredSkills, job.Status.ToString(), 
+            job.PostType.ToString(), job.CreatedAt,
+            job.EmployerId, job.Employer?.FullName ?? "Unknown", job.Employer?.AvatarUrl, job.Applications?.Count ?? 0));
+
         return MapToResponse(job, true);
     }
 
@@ -103,6 +115,14 @@ public class JobService : IJobService
         job.UpdatedAt = DateTime.UtcNow;
 
         await _jobRepository.SaveChangesAsync();
+
+        // Elasticsearch Sync
+        await _publishEndpoint.Publish(new JobIndexMessage(
+            job.Id, job.Title, job.Description, job.ServiceCategory.ToString(), job.Price, 
+            job.Latitude, job.Longitude, job.RequiredSkills, job.Status.ToString(), 
+            job.PostType.ToString(), job.CreatedAt,
+            job.EmployerId, job.Employer?.FullName ?? "Unknown", job.Employer?.AvatarUrl, job.Applications?.Count ?? 0));
+
         return MapToResponse(job, true);
     }
 
@@ -113,6 +133,10 @@ public class JobService : IJobService
 
         await _jobRepository.DeleteAsync(job);
         await _jobRepository.SaveChangesAsync();
+
+        // Elasticsearch Sync
+        await _publishEndpoint.Publish(new JobDeleteMessage(jobId));
+
         return true;
     }
 
@@ -309,6 +333,13 @@ public class JobService : IJobService
         await _applicationRepository.SaveChangesAsync();
         await _jobRepository.SaveChangesAsync();
 
+        // Elasticsearch Sync (Update Job Status)
+        await _publishEndpoint.Publish(new JobIndexMessage(
+            job.Id, job.Title, job.Description, job.ServiceCategory.ToString(), job.Price, 
+            job.Latitude, job.Longitude, job.RequiredSkills, job.Status.ToString(), 
+            job.PostType.ToString(), job.CreatedAt,
+            job.EmployerId, job.Employer?.FullName ?? "Unknown", job.Employer?.AvatarUrl, job.Applications?.Count ?? 0));
+
         // Point 4: Analytics
         await _publishEndpoint.Publish(new AnalyticsEvent("ApplicationAccepted", employerId, $"AppId: {applicationId}"));
 
@@ -393,6 +424,9 @@ public class JobService : IJobService
         await _jobRepository.DeleteAsync(job);
         await _jobRepository.SaveChangesAsync();
 
+        // Elasticsearch Sync
+        await _publishEndpoint.Publish(new JobDeleteMessage(jobId));
+
         await _publishEndpoint.Publish(new Messaging.AnalyticsEvent("JobDeletedByAdmin", Guid.Empty, $"JobId: {jobId}, Reason: Policy Violation"));
 
         if (!string.IsNullOrEmpty(employerEmail))
@@ -407,16 +441,33 @@ public class JobService : IJobService
 
     public async Task<IEnumerable<JobResponse>> SearchJobsAsync(JobSearchFilters filters)
     {
-        var jobs = await _jobRepository.SearchAsync(
-            filters.Keyword,
-            filters.Category,
-            filters.Location,
-            filters.MinPrice,
-            filters.MaxPrice,
-            filters.Timing,
-            filters.PostType);
+        var jobDocs = await _jobSearchService.SearchAsync(filters);
+        return jobDocs.Select(MapFromDocument);
+    }
 
-        return jobs.Select(j => MapToResponse(j, false));
+    private JobResponse MapFromDocument(Elastic.JobDocument doc)
+    {
+        return new JobResponse
+        {
+            Id = Guid.Parse(doc.Id),
+            EmployerId = doc.EmployerId,
+            EmployerName = doc.EmployerName,
+            EmployerAvatarUrl = doc.EmployerAvatarUrl,
+            CompanyHotline = "1900-xxxx (Giúp Việc 3 Miền Support)",
+            Title = doc.Title,
+            Description = doc.Description,
+            Location = doc.Location,
+            Price = doc.Price,
+            Latitude = doc.Coordinates.Latitude,
+            Longitude = doc.Coordinates.Longitude,
+            RequiredSkills = doc.RequiredSkills,
+            Status = Enum.Parse<Domain.Enums.JobStatus>(doc.Status),
+            PostType = Enum.Parse<Domain.Enums.PostType>(doc.PostType),
+            TimingType = Domain.Enums.JobTimingType.PartTime, // Default or store in ES if needed
+            ServiceCategory = Enum.Parse<Domain.Enums.ServiceCategory>(doc.Category),
+            ApplicantCount = doc.ApplicantCount,
+            CreatedAt = doc.CreatedAt
+        };
     }
 
     public async Task<int> GetTotalApplicationCountAsync()
@@ -433,6 +484,14 @@ public class JobService : IJobService
         job.UpdatedAt = DateTime.UtcNow;
 
         await _jobRepository.SaveChangesAsync();
+
+        // Elasticsearch Sync
+        await _publishEndpoint.Publish(new JobIndexMessage(
+            job.Id, job.Title, job.Description, job.ServiceCategory.ToString(), job.Price, 
+            job.Latitude, job.Longitude, job.RequiredSkills, job.Status.ToString(), 
+            job.PostType.ToString(), job.CreatedAt,
+            job.EmployerId, job.Employer?.FullName ?? "Unknown", job.Employer?.AvatarUrl, job.Applications?.Count ?? 0));
+
         return MapToResponse(job, true);
     }
 
@@ -442,5 +501,36 @@ public class JobService : IJobService
         return jobs
             .GroupBy(j => j.Status)
             .ToDictionary(g => g.Key, g => g.Count());
+    public async Task ReindexAllJobsAsync()
+    {
+        await _jobSearchService.InitializeIndexAsync();
+        
+        var jobs = await _jobRepository.GetAllAsync();
+        
+        var documents = jobs.Select(job => new Elastic.JobDocument
+        {
+            Id = job.Id.ToString(),
+            Title = job.Title,
+            Description = job.Description,
+            Location = job.Location,
+            Category = job.ServiceCategory.ToString(),
+            Price = job.Price,
+            Coordinates = new Location(job.Latitude, job.Longitude),
+            RequiredSkills = string.IsNullOrEmpty(job.RequiredSkills) 
+                ? new List<string>() 
+                : JsonSerializer.Deserialize<List<string>>(job.RequiredSkills) ?? new List<string>(),
+            Status = job.Status.ToString(),
+            PostType = job.PostType.ToString(),
+            CreatedAt = job.CreatedAt,
+            EmployerId = job.EmployerId,
+            EmployerName = job.Employer?.FullName ?? "Unknown",
+            EmployerAvatarUrl = job.Employer?.AvatarUrl,
+            ApplicantCount = job.Applications?.Count ?? 0
+        }).ToList();
+
+        if (documents.Any())
+        {
+            await _jobSearchService.BulkIndexAsync(documents);
+        }
     }
 }
