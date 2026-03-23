@@ -881,9 +881,28 @@ Advanced Features: Supports Fuzzy matching (typos), Proximity search (distance),
 ---
 Elastic re-index:
 GET /api/Job/search?PostType=1
-https://localhost:7004/api/Job/search
+api GET:https://localhost:7004/api/Job/search
+api GET:https://localhost:7004/api/Job/search?PostType=1
+Search Logic
+When you include PostType=1 in the request:
+
+Backend Filtering: The API will scan the 
+
+Jobs
+ table (which stores both job postings and worker ads) and only retrieve records where the PostType column is equal to 1 (Seeking).
+Use Case: This is primarily used on the "Tìm người giúp việc" page, where an employer wants to browse worker profiles/ads.
+Elasticsearch: If Elasticsearch is enabled, the query will target the index and apply a term filter on the postType field with the value 1.
+3. Example Response Data
+The items returned will generally represent a worker's advertisement, such as:
+
+Title: "Giúp việc siêng năng - Nấu ăn ngon"
+Price: The worker's desired hourly rate.
+Author: The worker's name.
+This differentiates the search from PostType=0, which would show a list of tasks/jobs offered by employers.
 curl.exe -k -X POST "https://localhost:7004/api/Job/reindex-elasticsearch"
 POST https://localhost:7004/api/Job/reindex-elasticsearch
+api GET:http://localhost:5275/api/WorkerSearch/search
+GET "http://localhost:5275/api/WorkerSearch/search?Keyword=Ho%20Cong%20Thanh"
 curl.exe -k -X GET "https://localhost:7004/api/Job/search?PostType=1"
 curl.exe -k -X POST http://localhost:5275/api/WorkerSearch/reindex
 curl.exe -X GET "http://localhost:5275/api/WorkerSearch/search"
