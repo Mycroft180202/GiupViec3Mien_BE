@@ -880,9 +880,20 @@ Decoupled Sync: New jobs and updates are synced automatically via RabbitMQ.
 Advanced Features: Supports Fuzzy matching (typos), Proximity search (distance), and Fast listings (Zero-DB reads).
 ---
 Elastic re-index:
+GET /api/Job/search?PostType=1
+https://localhost:7004/api/Job/search
 curl.exe -k -X POST "https://localhost:7004/api/Job/reindex-elasticsearch"
 POST https://localhost:7004/api/Job/reindex-elasticsearch
 curl.exe -k -X GET "https://localhost:7004/api/Job/search?PostType=1"
 curl.exe -k -X POST http://localhost:5275/api/WorkerSearch/reindex
 curl.exe -X GET "http://localhost:5275/api/WorkerSearch/search"
 curl.exe -X POST "http://localhost:5275/api/WorkerSearch/update-thanh"
+GET /api/WorkerSearch/search now processes Keyword, Location, MinRate, MaxRate, 
+
+Category
+, and 
+
+Timing
+.
+curl.exe -X GET "http://localhost:5275/api/WorkerSearch/search?Keyword=Ho%20Cong%20Thanh"
+GET /api/User/freelancer/{id}
