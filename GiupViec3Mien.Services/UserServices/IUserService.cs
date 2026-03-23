@@ -23,6 +23,8 @@ public interface IUserService
     Task<AdminUserDetailResponse?> GetUserDetailAsync(Guid userId);
     Task<AdminUserDetailResponse?> UpdateUserAsync(Guid userId, AdminUpdateUserRequest request);
     Task<bool> DeleteUserAsync(Guid userId);
+    Task UpdateWorkerProfileDirectlyAsync(Guid userId, double hourlyRate, string bio, List<string> skills);
+
     Task LockUserAsync(Guid userId);
     Task UnlockUserAsync(Guid userId);
     Task<IEnumerable<User>> GetAllWorkersWithProfilesAsync();

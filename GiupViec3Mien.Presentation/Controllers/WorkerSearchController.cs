@@ -3,6 +3,7 @@ using GiupViec3Mien.Services.Elastic;
 using GiupViec3Mien.Services.UserServices;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -44,7 +45,6 @@ public class WorkerSearchController : ControllerBase
         return Ok(workers);
     }
 
-
     [HttpPost("reindex")]
     public async Task<IActionResult> Reindex()
     {
@@ -83,8 +83,6 @@ public class WorkerSearchController : ControllerBase
                             : (System.Text.Json.JsonSerializer.Deserialize<List<string>>(w.WorkerProfile.Skills)?.FirstOrDefault() ?? "Khác"),
                         TimingType = "parttime"
                     });
-
-
                 }
                 catch (Exception ex)
                 {
@@ -106,4 +104,24 @@ public class WorkerSearchController : ControllerBase
         }
     }
 
+    [HttpPost("update-thanh")]
+    public async Task<IActionResult> UpdateThanh()
+    {
+        try
+        {
+            var userId = Guid.Parse("0d62431d-54cb-4e41-9e9d-5e6542b4976e");
+            await _userService.UpdateWorkerProfileDirectlyAsync(
+                userId, 
+                54000, 
+                "Tôi là Hồ Công Thành dev. Chuyên gia giúp việc gia đình và dọn dẹp nhà cửa. Rất vui được hỗ trợ gia đình bạn.", 
+                new List<string> { "Giúp việc nhà", "Nấu ăn" }
+            );
+
+            return Ok(new { message = "Thanh profile updated directly." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }

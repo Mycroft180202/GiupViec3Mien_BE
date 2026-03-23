@@ -1,5 +1,7 @@
 using GiupViec3Mien.Services.FileStorage;
 using GiupViec3Mien.Services.Interfaces;
+using GiupViec3Mien.Services.Elastic;
+
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -14,12 +16,17 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IWorkerSearchService _workerSearchService;
 
-    public UserService(IUserRepository userRepository, IFileStorageService fileStorageService)
+    public UserService(IUserRepository userRepository, 
+                       IFileStorageService fileStorageService,
+                       IWorkerSearchService workerSearchService)
     {
         _userRepository = userRepository;
         _fileStorageService = fileStorageService;
+        _workerSearchService = workerSearchService;
     }
+
 
     public async Task<string> UploadProfileImageAsync(Guid userId, IFormFile file)
     {
@@ -88,6 +95,55 @@ public class UserService : IUserService
         user.UpdatedAt = DateTime.UtcNow;
         await _userRepository.SaveChangesAsync();
     }
+    public async Task UpdateWorkerProfileDirectlyAsync(Guid userId, double hourlyRate, string bio, List<string> skills)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) throw new Exception("User not found.");
+
+        if (user.Role == Domain.Enums.Role.Worker)
+        {
+            if (user.WorkerProfile == null) user.WorkerProfile = new WorkerProfile { UserId = userId };
+            user.WorkerProfile.HourlyRate = (decimal)hourlyRate;
+            user.WorkerProfile.Bio = bio;
+            user.WorkerProfile.Skills = JsonSerializer.Serialize(skills);
+            user.WorkerProfile.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.SaveChangesAsync();
+
+            // Trigger re-index
+            try
+            {
+                var doc = new WorkerDocument
+                {
+                    Id = user.Id.ToString(),
+                    FullName = user.FullName,
+                    AvatarUrl = user.AvatarUrl,
+                    Bio = user.WorkerProfile?.Bio,
+                    ExperienceYears = user.WorkerProfile?.ExperienceYears ?? 0,
+                    HourlyRate = (double)(user.WorkerProfile?.HourlyRate ?? 0),
+                    Skills = string.IsNullOrEmpty(user.WorkerProfile?.Skills) 
+                        ? new List<string>() 
+                        : JsonSerializer.Deserialize<List<string>>(user.WorkerProfile.Skills) ?? new List<string>(),
+                    Location = user.AdditionalInfo ?? string.Empty,
+                    Verified = user.WorkerProfile?.Verified ?? false,
+                    Coordinates = new JobGeoPoint(user.Latitude, user.Longitude),
+                    CreatedAt = user.CreatedAt,
+                    ServiceCategories = string.IsNullOrEmpty(user.WorkerProfile?.Skills) 
+                        ? new List<string>() 
+                        : JsonSerializer.Deserialize<List<string>>(user.WorkerProfile.Skills) ?? new List<string>(),
+                    ServiceCategory = string.IsNullOrEmpty(user.WorkerProfile?.Skills) 
+                        ? "Khác"
+                        : (JsonSerializer.Deserialize<List<string>>(user.WorkerProfile.Skills)?.FirstOrDefault() ?? "Khác"),
+                    TimingType = "parttime"
+                };
+                await _workerSearchService.UpdateAsync(doc);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Search index update failed for {user.Id}: {ex.Message}");
+            }
+        }
+    }
+
 
     public async Task UpdateEmailAsync(Guid userId, string email)
     {
@@ -172,6 +228,44 @@ public class UserService : IUserService
 
         user.UpdatedAt = DateTime.UtcNow;
         await _userRepository.SaveChangesAsync();
+
+        // Trigger re-index for worker
+        if (user.Role == Domain.Enums.Role.Worker)
+        {
+            try
+            {
+                var doc = new WorkerDocument
+                {
+                    Id = user.Id.ToString(),
+                    FullName = user.FullName,
+                    AvatarUrl = user.AvatarUrl,
+                    Bio = user.WorkerProfile?.Bio,
+                    ExperienceYears = user.WorkerProfile?.ExperienceYears ?? 0,
+                    HourlyRate = (double)(user.WorkerProfile?.HourlyRate ?? 0),
+                    Skills = string.IsNullOrEmpty(user.WorkerProfile?.Skills) 
+                        ? new List<string>() 
+                        : JsonSerializer.Deserialize<List<string>>(user.WorkerProfile.Skills) ?? new List<string>(),
+                    Location = user.AdditionalInfo ?? string.Empty,
+                    Verified = user.WorkerProfile?.Verified ?? false,
+                    Coordinates = new JobGeoPoint(user.Latitude, user.Longitude),
+                    CreatedAt = user.CreatedAt,
+                    ServiceCategories = string.IsNullOrEmpty(user.WorkerProfile?.Skills) 
+                        ? new List<string>() 
+                        : JsonSerializer.Deserialize<List<string>>(user.WorkerProfile.Skills) ?? new List<string>(),
+                    ServiceCategory = string.IsNullOrEmpty(user.WorkerProfile?.Skills) 
+                        ? "Khác"
+                        : (JsonSerializer.Deserialize<List<string>>(user.WorkerProfile.Skills)?.FirstOrDefault() ?? "Khác"),
+                    TimingType = "parttime"
+                };
+                await _workerSearchService.UpdateAsync(doc);
+            }
+            catch (Exception ex)
+            {
+                // Silent fail for index update to avoid breaking profile update
+                Console.WriteLine($"Search index update failed for {user.Id}: {ex.Message}");
+            }
+        }
+
     }
 
     public async Task<IEnumerable<User>> GetAllUsersAsync()
