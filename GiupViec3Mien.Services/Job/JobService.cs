@@ -501,6 +501,8 @@ public class JobService : IJobService
         return jobs
             .GroupBy(j => j.Status)
             .ToDictionary(g => g.Key, g => g.Count());
+    }
+
     public async Task ReindexAllJobsAsync()
     {
         await _jobSearchService.InitializeIndexAsync();
@@ -515,7 +517,8 @@ public class JobService : IJobService
             Location = job.Location,
             Category = job.ServiceCategory.ToString(),
             Price = job.Price,
-            Coordinates = new Location(job.Latitude, job.Longitude),
+            Coordinates = new JobGeoPoint(job.Latitude, job.Longitude),
+
             RequiredSkills = string.IsNullOrEmpty(job.RequiredSkills) 
                 ? new List<string>() 
                 : JsonSerializer.Deserialize<List<string>>(job.RequiredSkills) ?? new List<string>(),

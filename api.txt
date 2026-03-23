@@ -854,3 +854,27 @@ Logging: Added system-level logging to
 
 EmailService
  and Consumers so you can monitor background tasks in the terminal
+ 
+ ---------
+ What has been implemented to Elasticsearch:
+Index Initialization:
+
+Added InitializeIndexAsync to the search service. This method sets up the correct Elasticsearch mappings (geo-points, keywords, and analyzers) from scratch.
+Added ClearIndexAsync and BulkIndexAsync for efficient data handling.
+Re-indexing Logic:
+
+Implemented ReindexAllJobsAsync in 
+
+JobService
+. This method performs a complete "Sync" by:
+Wiping the existing Elasticsearch index.
+Fetching all jobs (with employer and application data) from PostgreSQL.
+Bulk uploading them to Elasticsearch in a single optimized operation.
+Admin API Endpoint:
+
+Added a new endpoint: POST /api/Job/reindex-elasticsearch.
+Security: This endpoint is restricted to users with the Admin role.
+Usage: Simply call this endpoint once after deploying these changes to populate your search engine with all your current jobs.
+🔍 Summary of the New Elasticsearch Search System:
+Decoupled Sync: New jobs and updates are synced automatically via RabbitMQ.
+Advanced Features: Supports Fuzzy matching (typos), Proximity search (distance), and Fast listings (Zero-DB reads).

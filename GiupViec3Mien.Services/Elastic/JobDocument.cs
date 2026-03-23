@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Elastic.Clients.Elasticsearch;
+using ES = global::Elastic.Clients.Elasticsearch;
+
 
 namespace GiupViec3Mien.Services.Elastic;
 
@@ -13,7 +15,13 @@ public class JobDocument
     public string Location { get; set; } = string.Empty;
     
     // Elasticsearch Geo-point structure
-    public Location Coordinates { get; set; }
+    public JobGeoPoint Coordinates { get; set; }
+
+
+
+
+
+
     
     public decimal Price { get; set; }
     public string Category { get; set; } = string.Empty;

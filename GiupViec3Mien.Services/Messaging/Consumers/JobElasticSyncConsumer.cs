@@ -38,7 +38,9 @@ public class JobElasticSyncConsumer : IConsumer<JobIndexMessage>, IConsumer<JobD
             Description = msg.Description,
             Category = msg.Category,
             Price = msg.Price,
-            Coordinates = new global::Elastic.Clients.Elasticsearch.Location(msg.Lat, msg.Lon),
+            Coordinates = new JobGeoPoint(msg.Lat, msg.Lon),
+
+
             RequiredSkills = skills,
             Status = msg.Status,
             PostType = msg.PostType,

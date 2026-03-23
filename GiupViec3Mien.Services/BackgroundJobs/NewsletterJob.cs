@@ -21,6 +21,8 @@ public class NewsletterJob : IBackgroundJob
 
     public async Task ExecuteAsync()
     {
+        // Newsletter sending is currently disabled to prevent spam.
+        /*
         var users = await _userRepository.GetAllAsync();
         foreach (var user in users)
         {
@@ -33,5 +35,8 @@ public class NewsletterJob : IBackgroundJob
                 );
             }
         }
+        */
+        await Task.CompletedTask;
     }
+
 }

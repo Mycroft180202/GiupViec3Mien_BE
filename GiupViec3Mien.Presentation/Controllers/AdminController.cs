@@ -351,13 +351,15 @@ public class AdminController : ControllerBase
         return Ok(new { HangfireJobId = jobId, Message = "Tác vụ dọn dẹp hệ thống đã được xếp hàng." });
     }
 
-    /// <summary>Manually trigger the weekly newsletter broadcast.</summary>
+    /* Manual newsletter trigger disabled by request 
     [HttpPost("trigger-newsletter")]
     public IActionResult TriggerNewsletter()
     {
         var jobId = _backgroundJobClient.Enqueue<NewsletterJob>(x => x.ExecuteAsync());
         return Ok(new { HangfireJobId = jobId, Message = "Bản tin định kỳ đã được khởi động thủ công." });
     }
+    */
+
 
     // ═══════════════════════════════════════════════════════
     // HELPERS

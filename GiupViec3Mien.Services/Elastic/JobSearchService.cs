@@ -23,13 +23,13 @@ public class JobSearchService : IJobSearchService
         var response = await _client.SearchAsync<JobDocument>(s => s
             .Index(IndexName)
             .From(0)
-            .Size(50) // Default page size
+            .Size(1000) // Support larger result sets
             .Query(q => q
                 .Bool(b => b
                     .Must(m => {
                         if (!string.IsNullOrEmpty(filters.Keyword))
                             m.MultiMatch(mm => mm
-                                .Fields(new[] { "title^3", "description" }) // Boost Title
+                                .Fields(new[] { "title^3", "description" })
                                 .Query(filters.Keyword)
                                 .Fuzziness(new Fuzziness("AUTO")));
                     })
@@ -48,29 +48,32 @@ public class JobSearchService : IJobSearchService
                         // Post Type (Seeking vs Hiring)
                         f.Term(t => t.Field(fld => fld.PostType).Value(filters.PostType.ToString()));
 
+                        // Explicit Location match (string search)
+                        if (!string.IsNullOrEmpty(filters.Location))
+                            f.Match(mtch => mtch.Field(fld => fld.Location).Query(filters.Location));
+
                         // Geo Proximity Filter
                         if (filters.Latitude.HasValue && filters.Longitude.HasValue && filters.RadiusKm.HasValue)
                         {
                             f.GeoDistance(gd => gd
                                 .Field(fld => fld.Coordinates)
                                 .Distance($"{filters.RadiusKm.Value}km")
-                                .Location(new Location(filters.Latitude.Value, filters.Longitude.Value)));
+                                .Location($"{filters.Latitude.Value},{filters.Longitude.Value}"));
                         }
                     })
                 )
             )
             .Sort(srt => {
-                // If user provided location, sort by nearest
                 if (filters.Latitude.HasValue && filters.Longitude.HasValue)
                 {
                     srt.GeoDistance(gd => gd
                         .Field(f => f.Coordinates)
-                        .Location(new Location(filters.Latitude.Value, filters.Longitude.Value))
+                        .Location($"{filters.Latitude.Value},{filters.Longitude.Value}")
                         .Order(SortOrder.Asc));
                 }
+
                 else
                 {
-                    // Otherwise sort by recency
                     srt.Field(f => f.CreatedAt, f => f.Order(SortOrder.Desc));
                 }
             })
@@ -78,11 +81,12 @@ public class JobSearchService : IJobSearchService
 
         if (!response.IsSuccess())
         {
-            // Log error or handle failure
             return Enumerable.Empty<JobDocument>();
         }
 
         return response.Documents;
+    }
+
     public async Task InitializeIndexAsync()
     {
         await ClearIndexAsync();
@@ -90,14 +94,13 @@ public class JobSearchService : IJobSearchService
         await _client.Indices.CreateAsync(IndexName, i => i
             .Mappings(m => m
                 .Properties<JobDocument>(p => p
-                    .Text(t => t.Title) // Analyzer support can be added if Elastic has vi plugin
+                    .Text(t => t.Title)
                     .Text(t => t.Description)
                     .Keyword(k => k.Category)
                     .Keyword(k => k.RequiredSkills)
                     .Keyword(k => k.Status)
                     .Keyword(k => k.PostType)
                     .GeoPoint(g => g.Coordinates)
-                    .Double(d => d.Price)
                     .Date(d => d.CreatedAt)
                 )
             )

@@ -33,44 +33,14 @@ public class WeeklySummaryJob : IBackgroundJob
 
     public async Task ExecuteAsync()
     {
+        // Weekly summary emails are currently disabled.
+        /*
         var lastWeek = DateTime.UtcNow.AddDays(-7);
-        
-        // 1. Get stats for the week
-        var newJobs = await _jobRepository.GetCreatedSinceAsync(lastWeek);
-        var newApplications = await _applicationRepository.GetCreatedSinceAsync(lastWeek);
-        
-        // 2. Get all users
-        var users = await _userRepository.GetAllAsync();
-        
-        foreach (var user in users)
-        {
-            if (string.IsNullOrEmpty(user.Email)) continue;
-
-            string report = "";
-            if (user.Role == Role.Employer)
-            {
-                report = BuildEmployerReport(user.FullName, newApplications.Where(a => a.Job?.EmployerId == user.Id).ToList());
-            }
-            else if (user.Role == Role.Worker)
-            {
-                // Find jobs that match worker's general area or just show latest high-quality jobs
-                var matchingJobs = newJobs
-                    .Where(j => j.Status == JobStatus.Open)
-                    .OrderByDescending(j => j.Price) // Highlight high paying jobs
-                    .Take(5)
-                    .ToList();
-                    
-                report = BuildWorkerReport(user.FullName, matchingJobs);
-            }
-
-            if (!string.IsNullOrEmpty(report))
-            {
-                _backgroundJobClient.Enqueue<SendEmailJob>(
-                    job => job.SendAsync(user.Email, "GiúpViệc3Miền: Báo cáo hoạt động tuần qua", report)
-                );
-            }
-        }
+        ...
+        */
+        await Task.CompletedTask;
     }
+
 
     private string BuildEmployerReport(string fullName, List<Domain.Entities.JobApplication> apps)
     {

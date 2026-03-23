@@ -21,8 +21,17 @@ public class MockJobRepository : IJobRepository
     public Task<IEnumerable<Job>> GetActiveJobsAsync() => Task.FromResult(Jobs.Where(j => j.Status == JobStatus.Open).AsEnumerable());
     public Task<IEnumerable<Job>> GetJobsByEmployerAsync(Guid employerId) => Task.FromResult(Jobs.Where(j => j.EmployerId == employerId).AsEnumerable());
     public Task<IEnumerable<Job>> GetJobsBySkillsAsync(IEnumerable<string> skills) => Task.FromResult(Jobs.Where(j => !string.IsNullOrEmpty(j.RequiredSkills) && skills.Any(s => j.RequiredSkills.Contains(s))).AsEnumerable());
+    public Task DeleteAsync(Job job) { Jobs.Remove(job); return Task.CompletedTask; }
+    public Task<IEnumerable<Job>> GetJobsByPostTypeAsync(PostType postType) => Task.FromResult(Jobs.Where(j => j.PostType == postType).AsEnumerable());
+    public Task<IEnumerable<Job>> GetAllAsync() => Task.FromResult(Jobs.AsEnumerable());
+    public Task<IEnumerable<Job>> SearchAsync(string? keyword, ServiceCategory? category, string? location, decimal? minPrice, decimal? maxPrice, JobTimingType? timing, PostType postType) => Task.FromResult(Jobs.AsEnumerable());
+    public Task<IEnumerable<Job>> GetCreatedSinceAsync(DateTime date) => Task.FromResult(Jobs.Where(j => j.CreatedAt >= date).AsEnumerable());
+    public Task<IEnumerable<Job>> GetByAssignedWorkerIdAsync(Guid workerId) => Task.FromResult(Jobs.Where(j => j.Applications != null && j.Applications.Any(a => a.ApplicantId == workerId)).AsEnumerable());
+
     public Task SaveChangesAsync() => Task.CompletedTask;
 }
+
+
 
 public class MockUserRepository : IUserRepository
 {
@@ -32,8 +41,10 @@ public class MockUserRepository : IUserRepository
     public Task<IEnumerable<User>> GetAllWorkersAsync() => Task.FromResult(Users.Where(u => u.Role == Role.Worker).AsEnumerable());
     public Task<IEnumerable<User>> GetAllAsync() => Task.FromResult(Users.AsEnumerable());
     public Task AddAsync(User user) { Users.Add(user); return Task.CompletedTask; }
+    public Task DeleteAsync(User user) { Users.Remove(user); return Task.CompletedTask; }
     public Task SaveChangesAsync() => Task.CompletedTask;
 }
+
 
 public class MockReviewRepository : IReviewRepository
 {
