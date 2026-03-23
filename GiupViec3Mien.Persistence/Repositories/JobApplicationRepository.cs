@@ -22,6 +22,12 @@ public class JobApplicationRepository : IJobApplicationRepository
         await _context.JobApplications.AddAsync(application);
     }
 
+    public Task DeleteAsync(JobApplication application)
+    {
+        _context.JobApplications.Remove(application);
+        return Task.CompletedTask;
+    }
+
     public async Task<JobApplication?> GetByIdAsync(Guid id)
     {
         return await _context.JobApplications

@@ -8,6 +8,7 @@ namespace GiupViec3Mien.Services.Interfaces;
 public interface IJobApplicationRepository
 {
     Task AddAsync(JobApplication application);
+    Task DeleteAsync(JobApplication application);
     Task<JobApplication?> GetByIdAsync(Guid id);
     Task<IEnumerable<JobApplication>> GetByJobIdAsync(Guid jobId);
     Task<IEnumerable<JobApplication>> GetByApplicantIdAsync(Guid applicantId);

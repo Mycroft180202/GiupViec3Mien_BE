@@ -17,6 +17,9 @@ public class AdminUserDetailResponse
     public bool HasPremiumAccess { get; set; }
     public DateTime? PremiumExpiry { get; set; }
     public string? AvatarUrl { get; set; }
+    public bool PhoneVerified { get; set; }
+    public DateTime? PhoneVerifiedAt { get; set; }
+    public string? PhoneVerificationChannel { get; set; }
     public GenderOption Gender { get; set; }
     public DateTime? DateOfBirth { get; set; }
     public double Latitude { get; set; }

@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using GiupViec3Mien.Domain.Entities;
 using GiupViec3Mien.Services.DTOs.Admin;
+using System.Text.Json.Nodes;
 
 namespace GiupViec3Mien.Services.UserServices;
 
@@ -157,6 +158,7 @@ public class UserService : IUserService
         user.Latitude = request.Latitude;
         user.Longitude = request.Longitude;
         if (!string.IsNullOrEmpty(request.AvatarUrl)) user.AvatarUrl = request.AvatarUrl;
+        if (request.AdditionalInfo != null) user.AdditionalInfo = request.AdditionalInfo;
         
         if (user.Role == Domain.Enums.Role.Worker)
         {
@@ -171,6 +173,21 @@ public class UserService : IUserService
         }
 
         user.UpdatedAt = DateTime.UtcNow;
+        await _userRepository.SaveChangesAsync();
+    }
+
+    public async Task MarkPhoneVerifiedAsync(Guid userId, string channel)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) throw new Exception("User not found.");
+
+        var info = ParseAdditionalInfo(user.AdditionalInfo);
+        info["phoneVerified"] = true;
+        info["phoneVerifiedAt"] = DateTime.UtcNow;
+        info["phoneVerificationChannel"] = channel;
+        user.AdditionalInfo = info.ToJsonString();
+        user.UpdatedAt = DateTime.UtcNow;
+
         await _userRepository.SaveChangesAsync();
     }
 
@@ -235,6 +252,11 @@ public class UserService : IUserService
 
     private AdminUserDetailResponse MapToAdminDetail(User user)
     {
+        var info = ParseAdditionalInfo(user.AdditionalInfo);
+        var phoneVerified = info["phoneVerified"]?.GetValue<bool>() ?? false;
+        var phoneVerifiedAt = info["phoneVerifiedAt"]?.GetValue<DateTime?>();
+        var phoneVerificationChannel = info["phoneVerificationChannel"]?.GetValue<string>();
+
         return new AdminUserDetailResponse
         {
             Id = user.Id,
@@ -247,6 +269,9 @@ public class UserService : IUserService
             HasPremiumAccess = user.HasPremiumAccess,
             PremiumExpiry = user.PremiumExpiry,
             AvatarUrl = user.AvatarUrl,
+            PhoneVerified = phoneVerified,
+            PhoneVerifiedAt = phoneVerifiedAt,
+            PhoneVerificationChannel = phoneVerificationChannel,
             Gender = user.Gender,
             DateOfBirth = user.DateOfBirth,
             Latitude = user.Latitude,
@@ -263,6 +288,23 @@ public class UserService : IUserService
                 Skills = user.WorkerProfile.Skills
             }
         };
+    }
+
+    private JsonObject ParseAdditionalInfo(string? additionalInfo)
+    {
+        if (string.IsNullOrWhiteSpace(additionalInfo))
+        {
+            return new JsonObject();
+        }
+
+        try
+        {
+            return JsonNode.Parse(additionalInfo)?.AsObject() ?? new JsonObject();
+        }
+        catch
+        {
+            return new JsonObject();
+        }
     }
 
     private string? MaskContact(string? contact)

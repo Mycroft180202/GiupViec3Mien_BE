@@ -11,10 +11,26 @@ namespace GiupViec3Mien.Presentation.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly GiupViec3Mien.Services.Interfaces.IVerificationService _verificationService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, GiupViec3Mien.Services.Interfaces.IVerificationService verificationService)
     {
         _authService = authService;
+        _verificationService = verificationService;
+    }
+
+    [HttpPost("send-otp")]
+    public async Task<IActionResult> SendOtp([FromBody] SendOtpRequest request)
+    {
+        try
+        {
+            await _verificationService.GenerateAndSendOtpAsync(request.Phone);
+            return Ok(new { message = "Mã xác nhận OTP đã được gửi về Số điện thoại của bạn qua tin nhắn Zalo/SMS." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Không thể gửi OTP: {ex.Message}" });
+        }
     }
 
     [HttpPost("register")]
@@ -46,11 +62,11 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("guest-checkout")]
-    public async Task<IActionResult> GuestCheckout([FromQuery] string phone, [FromQuery] string fullName)
+    public async Task<IActionResult> GuestCheckout([FromBody] GuestCheckoutRequest request)
     {
         try
         {
-            var response = await _authService.GuestCheckoutAsync(phone, fullName);
+            var response = await _authService.GuestCheckoutAsync(request);
             return Ok(response);
         }
         catch (Exception ex)

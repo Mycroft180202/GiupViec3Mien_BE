@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.ComponentModel;
 using GiupViec3Mien.Services.Interfaces;
+using GiupViec3Mien.Services.Notification;
 using Hangfire;
 
 namespace GiupViec3Mien.Services.BackgroundJobs;
@@ -13,12 +14,14 @@ public class JobMatchingJob
     private readonly IMatchingService _matchingService;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly IUserRepository _userRepository;
+    private readonly INotificationService _notificationService;
 
-    public JobMatchingJob(IMatchingService matchingService, IBackgroundJobClient backgroundJobClient, IUserRepository userRepository)
+    public JobMatchingJob(IMatchingService matchingService, IBackgroundJobClient backgroundJobClient, IUserRepository userRepository, INotificationService notificationService)
     {
         _matchingService = matchingService;
         _backgroundJobClient = backgroundJobClient;
         _userRepository = userRepository;
+        _notificationService = notificationService;
     }
 
     [DisplayName("Calculate Best Worker Matches for Job: {1}")]
@@ -41,6 +44,13 @@ public class JobMatchingJob
                             $"Hi {match.FullName}, the job '{title}' is a {match.MatchScore}% match for your skills. Apply now!")
                     );
                 }
+
+                await _notificationService.CreateAsync(
+                    match.WorkerId,
+                    "job_match",
+                    "Có công việc phù hợp với bạn",
+                    $"Tin '{title}' đang phù hợp khoảng {match.MatchScore}% với hồ sơ của bạn.",
+                    $"/viec-lam/{jobId}");
             }
         }
     }

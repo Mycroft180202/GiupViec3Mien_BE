@@ -2,6 +2,7 @@ using GiupViec3Mien.Services.DTOs.Job;
 using GiupViec3Mien.Services.Interfaces;
 using GiupViec3Mien.Services.FileStorage;
 using GiupViec3Mien.Services.Messaging;
+using GiupViec3Mien.Services.Notification;
 using GiupViec3Mien.Services.Elastic;
 using Elastic.Clients.Elasticsearch;
 using MassTransit;
@@ -24,6 +25,7 @@ public class JobService : IJobService
     private readonly IUserRepository _userRepository;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly GiupViec3Mien.Services.Elastic.IJobSearchService _jobSearchService;
+    private readonly INotificationService _notificationService;
 
     public JobService(IJobRepository jobRepository, 
                       IJobApplicationRepository applicationRepository, 
@@ -31,7 +33,8 @@ public class JobService : IJobService
                       IPublishEndpoint publishEndpoint,
                       IUserRepository userRepository,
                       IBackgroundJobClient backgroundJobClient,
-                      GiupViec3Mien.Services.Elastic.IJobSearchService jobSearchService)
+                      GiupViec3Mien.Services.Elastic.IJobSearchService jobSearchService,
+                      INotificationService notificationService)
     {
         _jobRepository = jobRepository;
         _applicationRepository = applicationRepository;
@@ -40,6 +43,7 @@ public class JobService : IJobService
         _userRepository = userRepository;
         _backgroundJobClient = backgroundJobClient;
         _jobSearchService = jobSearchService;
+        _notificationService = notificationService;
     }
 
     public async Task<JobResponse> CreateJobAsync(Guid employerId, CreateJobRequest request)
@@ -363,7 +367,80 @@ public class JobService : IJobService
             await _publishEndpoint.Publish(new SendEmailMessage(application.Applicant.Email, subject, body));
         }
 
+        await _notificationService.CreateAsync(
+            application.ApplicantId,
+            "application_accepted",
+            "Đơn ứng tuyển đã được chấp nhận",
+            $"Chúc mừng bạn! Tin '{job.Title}' đã chấp nhận hồ sơ của bạn.",
+            "/dashboard/viec-da-ung-tuyen");
+
         return MapToApplicationResponse(application, true);
+    }
+
+    public async Task<bool> RejectApplicationAsync(Guid employerId, Guid applicationId)
+    {
+        var application = await _applicationRepository.GetByIdAsync(applicationId);
+        if (application == null)
+        {
+            return false;
+        }
+
+        var job = application.Job ?? await _jobRepository.GetByIdAsync(application.JobId);
+        if (job == null || job.EmployerId != employerId)
+        {
+            return false;
+        }
+
+        if (application.IsAccepted)
+        {
+            throw new Exception("Khong the tu choi ung vien da duoc nhan.");
+        }
+
+        await _applicationRepository.DeleteAsync(application);
+        await _applicationRepository.SaveChangesAsync();
+
+        await _publishEndpoint.Publish(new AnalyticsEvent("ApplicationRejected", employerId, $"AppId: {applicationId}"));
+
+        return true;
+    }
+
+    public async Task<string> GetApplicationCvUrlAsync(Guid requesterId, Guid applicationId)
+    {
+        var requester = await _userRepository.GetByIdAsync(requesterId);
+        if (requester == null)
+        {
+            throw new Exception("Requester not found.");
+        }
+
+        var application = await _applicationRepository.GetByIdAsync(applicationId);
+        if (application == null)
+        {
+            throw new Exception("Application not found.");
+        }
+
+        if (string.IsNullOrWhiteSpace(application.CvUrl) || application.CvUrl == "[Processing...]")
+        {
+            throw new Exception("CV is still being processed or has not been uploaded yet.");
+        }
+
+        var canViewCv = requester.Role == Domain.Enums.Role.Admin ||
+                        application.ApplicantId == requesterId ||
+                        application.Job?.EmployerId == requesterId;
+
+        if (!canViewCv)
+        {
+            throw new Exception("You do not have permission to view this CV.");
+        }
+
+        var accessibleUrl = await _fileStorageService.GetAccessibleFileUrlAsync(application.CvUrl);
+
+        if (!string.Equals(accessibleUrl, application.CvUrl, StringComparison.Ordinal))
+        {
+            application.CvUrl = accessibleUrl;
+            await _applicationRepository.SaveChangesAsync();
+        }
+
+        return accessibleUrl;
     }
 
 

@@ -25,6 +25,7 @@ using Hangfire.PostgreSql;
 using GiupViec3Mien.Services.BackgroundJobs;
 using GiupViec3Mien.Services.NewsFeed;
 using GiupViec3Mien.Services.Training;
+using GiupViec3Mien.Services.Notification;
 using Elastic.Clients.Elasticsearch;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -58,7 +59,15 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IJobSearchService, JobSearchService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationRealtimeService, SignalRNotificationRealtimeService>();
+
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<IZaloService, GiupViec3Mien.Services.NotificationServices.ZaloService>();
+builder.Services.AddScoped<ISmsService, GiupViec3Mien.Services.NotificationServices.SmsFallbackService>();
+builder.Services.AddScoped<IVerificationService, GiupViec3Mien.Services.NotificationServices.VerificationService>();
 
 // News Feed
 builder.Services.AddScoped<INewsPostRepository, NewsPostRepository>();
@@ -155,6 +164,22 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) &&
+                (path.StartsWithSegments("/chatHub") || path.StartsWithSegments("/notificationHub")))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddCors(options =>
@@ -215,6 +240,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ChatHub>("/chatHub");
+app.MapHub<NotificationHub>("/notificationHub");
 
 // Hangfire Dashboard & Job Registration
 app.UseHangfireDashboard("/hangfire", new DashboardOptions

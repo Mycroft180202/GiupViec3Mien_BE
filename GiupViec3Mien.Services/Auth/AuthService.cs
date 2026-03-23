@@ -19,16 +19,26 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
     private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly IVerificationService _verificationService;
 
-    public AuthService(IUserRepository userRepository, IConfiguration configuration, IBackgroundJobClient backgroundJobClient)
+    public AuthService(IUserRepository userRepository, IConfiguration configuration, IBackgroundJobClient backgroundJobClient, IVerificationService verificationService)
     {
         _userRepository = userRepository;
         _configuration = configuration;
         _backgroundJobClient = backgroundJobClient;
+        _verificationService = verificationService;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
+        if (request.Phone != "0901234567") // Admin bypass for easy test
+        {
+            if (!_verificationService.VerifyOtp(request.Phone, request.OtpCode))
+            {
+                throw new Exception("Mã xác minh OTP không hợp lệ, hoặc đã hết hạn.");
+            }
+        }
+
         var existingUser = await _userRepository.GetByPhoneAsync(request.Phone);
         if (existingUser != null)
         {
@@ -43,7 +53,11 @@ public class AuthService : IAuthService
             Role = request.Role,
             Email = request.Email,
             Gender = request.Gender,
-            DateOfBirth = request.DateOfBirth
+            DateOfBirth = request.DateOfBirth,
+            AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new {
+                provinceCode = request.ProvinceCode,
+                provinceName = request.ProvinceName
+            })
         };
 
         if (request.Role == Role.Worker)
@@ -82,8 +96,21 @@ public class AuthService : IAuthService
         return await CreateResponseAsync(user);
     }
 
-    public async Task<AuthResponse> GuestCheckoutAsync(string phone, string fullName)
+    public async Task<AuthResponse> GuestCheckoutAsync(GuestCheckoutRequest request)
     {
+        var phone = request.Phone?.Trim() ?? string.Empty;
+        var fullName = request.FullName?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            throw new Exception("Số điện thoại là bắt buộc.");
+        }
+
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            throw new Exception("Họ tên là bắt buộc.");
+        }
+
         var user = await _userRepository.GetByPhoneAsync(phone);
         
         // Shadow Account Logic
@@ -100,6 +127,16 @@ public class AuthService : IAuthService
             };
             
             await _userRepository.AddAsync(user);
+            await _userRepository.SaveChangesAsync();
+        }
+        else if (!user.IsGuest)
+        {
+            throw new Exception("Số điện thoại này đã có tài khoản. Vui lòng đăng nhập để tiếp tục.");
+        }
+        else if (!string.Equals(user.FullName, fullName, StringComparison.Ordinal))
+        {
+            user.FullName = fullName;
+            _userRepository.Update(user);
             await _userRepository.SaveChangesAsync();
         }
 
@@ -119,11 +156,17 @@ public class AuthService : IAuthService
 
         return new AuthResponse
         {
+            UserId = user.Id,
             Token = token,
             RefreshToken = refreshToken,
             FullName = user.FullName,
             Role = user.Role,
-            Phone = user.Phone
+            Phone = user.Phone,
+            Email = user.Email ?? string.Empty,
+            AvatarUrl = user.AvatarUrl ?? string.Empty,
+            IsGuest = user.IsGuest,
+            HasPremiumAccess = user.HasPremiumAccess,
+            PremiumExpiry = user.PremiumExpiry
         };
     }
 

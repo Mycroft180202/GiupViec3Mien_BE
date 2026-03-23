@@ -17,6 +17,7 @@ public interface IUserService
     Task UpdateEmailAsync(Guid userId, string email);
     Task<DTOs.User.WorkerInfoResponse?> GetWorkerInfoAsync(Guid workerId, Guid requesterId);
     Task UpdateProfileAsync(Guid userId, DTOs.User.UpdateUserProfileRequest request);
+    Task MarkPhoneVerifiedAsync(Guid userId, string channel);
     
     // Admin operations
     Task<IEnumerable<User>> GetAllUsersAsync();

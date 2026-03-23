@@ -289,7 +289,7 @@ public class MatchingService : IMatchingService
                     bestMatchForThisEmployer = new EmployerMatchResultDto
                     {
                         EmployerId = employerId,
-                        JobId = workerId, // CONSISTENT JobId for this search as requested
+                        JobId = job.Id,
                         JobTitle = job.Title,
                         EmployerName = job.Employer?.FullName ?? "Unknown",
                         AvatarUrl = job.Employer?.AvatarUrl,

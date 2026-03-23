@@ -18,4 +18,6 @@ public class UpdateUserProfileRequest
     public string? Bio { get; set; }
     public int ExperienceYears { get; set; }
     public decimal HourlyRate { get; set; }
+
+    public string? AdditionalInfo { get; set; }
 }

@@ -14,6 +14,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<JobApplication> JobApplications { get; set; }
     public DbSet<ChatMessage> ChatMessages { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
     public DbSet<SubscriptionPackage> SubscriptionPackages { get; set; }
     public DbSet<ActivityLog> ActivityLogs { get; set; }
 
@@ -103,6 +104,15 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(cm => cm.ReceiverId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.Recipient)
+            .WithMany()
+            .HasForeignKey(n => n.RecipientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => new { n.RecipientId, n.IsRead, n.CreatedAt });
             
         // ActivityLog – actor is optional (system actions have no actor)
         modelBuilder.Entity<ActivityLog>()

@@ -13,6 +13,9 @@ public class RegisterRequest
     public string Password { get; set; } = string.Empty;
     
     [Required]
+    public string OtpCode { get; set; } = string.Empty;
+    
+    [Required]
     public string FullName { get; set; } = string.Empty;
     
     [Required]
@@ -24,4 +27,8 @@ public class RegisterRequest
     public GenderOption Gender { get; set; } = GenderOption.Any;
 
     public DateTime? DateOfBirth { get; set; }
+
+    public int? ProvinceCode { get; set; }
+
+    public string? ProvinceName { get; set; }
 }

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using GiupViec3Mien.Services.UserServices;
 using Hangfire;
 using GiupViec3Mien.Services.BackgroundJobs;
+using GiupViec3Mien.Services.Interfaces;
 
 namespace GiupViec3Mien.Presentation.Controllers;
 
@@ -19,11 +20,13 @@ public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly IVerificationService _verificationService;
 
-    public UserController(IUserService userService, IBackgroundJobClient backgroundJobClient)
+    public UserController(IUserService userService, IBackgroundJobClient backgroundJobClient, IVerificationService verificationService)
     {
         _userService = userService;
         _backgroundJobClient = backgroundJobClient;
+        _verificationService = verificationService;
     }
 
     [HttpPost("uploadprofile")]
@@ -157,6 +160,53 @@ public class UserController : ControllerBase
             await _userService.UpdateProfileAsync(userId, request);
 
             return Ok(new { message = "Profile updated successfully." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("phone-verification/send")]
+    public async Task<IActionResult> SendPhoneVerificationOtp()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+
+            var userId = Guid.Parse(userIdClaim);
+            var profile = await _userService.GetProfileAsync(userId);
+            if (profile == null) return NotFound(new { message = "User not found." });
+
+            await _verificationService.GenerateAndSendOtpAsync(profile.Phone);
+            return Ok(new { message = "Mã OTP đã được gửi qua Zalo OA/SMS tới số điện thoại hiện tại của bạn." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("phone-verification/verify")]
+    public async Task<IActionResult> VerifyPhoneOtp([FromBody] VerifyPhoneOtpRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+
+            var userId = Guid.Parse(userIdClaim);
+            var profile = await _userService.GetProfileAsync(userId);
+            if (profile == null) return NotFound(new { message = "User not found." });
+
+            if (string.IsNullOrWhiteSpace(request.OtpCode) || !_verificationService.VerifyOtp(profile.Phone, request.OtpCode))
+            {
+                return BadRequest(new { message = "Mã OTP không hợp lệ hoặc đã hết hạn." });
+            }
+
+            await _userService.MarkPhoneVerifiedAsync(userId, "ZaloOA");
+            return Ok(new { message = "Số điện thoại đã được xác minh thành công qua Zalo OA.", channel = "ZaloOA" });
         }
         catch (Exception ex)
         {

@@ -26,6 +26,8 @@ public interface IJobService
     Task<IEnumerable<JobApplicationResponse>> GetReceivedApplicationsAsync(Guid employerId);
     Task<JobApplicationResponse?> GetMyApplicationForJobAsync(Guid userId, Guid jobId);
     Task<JobApplicationResponse?> AcceptApplicationAsync(Guid employerId, Guid applicationId);
+    Task<bool> RejectApplicationAsync(Guid employerId, Guid applicationId);
+    Task<string> GetApplicationCvUrlAsync(Guid requesterId, Guid applicationId);
     Task<IEnumerable<JobResponse>> GetJobsBySkillsAsync(IEnumerable<string> skills);
     Task<IEnumerable<JobResponse>> SearchJobsAsync(JobSearchFilters filters);
     Task ReindexAllJobsAsync();

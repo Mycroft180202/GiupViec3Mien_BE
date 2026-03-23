@@ -240,6 +240,47 @@ public class JobController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("applications/{applicationId}/reject")]
+    [Authorize(Roles = "Employer,Admin")]
+    public async Task<IActionResult> RejectApplication(Guid applicationId)
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var employerId)) return Unauthorized();
+
+        try
+        {
+            var success = await _jobService.RejectApplicationAsync(employerId, applicationId);
+            if (!success)
+            {
+                return BadRequest(new { message = "Khong the tu choi ung vien nay. Ho so co the khong ton tai hoac ban khong co quyen." });
+            }
+
+            return Ok(new { message = "Da tu choi ung vien thanh cong." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("applications/{applicationId}/cv")]
+    [Authorize]
+    public async Task<IActionResult> GetApplicationCv(Guid applicationId)
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var requesterId)) return Unauthorized();
+
+        try
+        {
+            var url = await _jobService.GetApplicationCvUrlAsync(requesterId, applicationId);
+            return Ok(new { url });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     /// <summary>
     /// Manually trigger worker-job matching calculation for a specific job.
     /// Useful for administrators or when the automatic trigger failed.

@@ -1,6 +1,7 @@
 using GiupViec3Mien.Domain.Entities;
 using GiupViec3Mien.Services.Interfaces;
 using GiupViec3Mien.Services.Messaging;
+using GiupViec3Mien.Services.Notification;
 using MassTransit;
 using System.Threading.Tasks;
 using System;
@@ -12,12 +13,14 @@ public class ApplicationConsumer : IConsumer<JobApplicationTask>
     private readonly IJobApplicationRepository _applicationRepository;
     private readonly IJobRepository _jobRepository;
     private readonly IPublishEndpoint _publishEndpoint;
+    private readonly INotificationService _notificationService;
 
-    public ApplicationConsumer(IJobApplicationRepository applicationRepository, IJobRepository jobRepository, IPublishEndpoint publishEndpoint)
+    public ApplicationConsumer(IJobApplicationRepository applicationRepository, IJobRepository jobRepository, IPublishEndpoint publishEndpoint, INotificationService notificationService)
     {
         _applicationRepository = applicationRepository;
         _jobRepository = jobRepository;
         _publishEndpoint = publishEndpoint;
+        _notificationService = notificationService;
     }
 
     public async Task Consume(ConsumeContext<JobApplicationTask> context)
@@ -51,6 +54,16 @@ public class ApplicationConsumer : IConsumer<JobApplicationTask>
         else
         {
             Console.WriteLine($"[ApplicationConsumer] Employer email NOT found for job {task.JobId}. Employer null? {job?.Employer == null}");
+        }
+
+        if (job?.EmployerId != Guid.Empty)
+        {
+            await _notificationService.CreateAsync(
+                job.EmployerId,
+                "job_application",
+                "Có ứng viên mới ứng tuyển",
+                $"Tin đăng '{job?.Title}' vừa có thêm một ứng viên ứng tuyển.",
+                $"/ung-tuyen-viec-lam/{task.JobId}");
         }
     }
 }

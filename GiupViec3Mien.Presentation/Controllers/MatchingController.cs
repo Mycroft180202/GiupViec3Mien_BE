@@ -15,10 +15,12 @@ namespace GiupViec3Mien.Presentation.Controllers;
 public class MatchingController : ControllerBase
 {
     private readonly IMatchingService _matchingService;
+    private readonly IJobRepository _jobRepository;
 
-    public MatchingController(IMatchingService matchingService)
+    public MatchingController(IMatchingService matchingService, IJobRepository jobRepository)
     {
         _matchingService = matchingService;
+        _jobRepository = jobRepository;
     }
 
     [HttpGet("best-matches/{jobId}")]
@@ -61,8 +63,34 @@ public class MatchingController : ControllerBase
         try
         {
             var results = await _matchingService.GetBestMatchesForJobAsync(jobId, limit);
-            // Specifically returning a list of workerIds and scores as per request
-            return Ok(results.Select(r => new { r.WorkerId, r.MatchScore }));
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("jobs/{jobId}/workers")]
+    [Authorize(Roles = "Employer,Admin")]
+    public async Task<IActionResult> GetWorkerSuggestionsForJob(Guid jobId, [FromQuery] int limit = 10)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+
+            var requesterId = Guid.Parse(userIdClaim);
+            var job = await _jobRepository.GetByIdAsync(jobId);
+            if (job == null) return NotFound(new { message = "Job not found." });
+
+            if (!User.IsInRole("Admin") && job.EmployerId != requesterId)
+            {
+                return Forbid();
+            }
+
+            var matches = await _matchingService.GetBestMatchesForJobAsync(jobId, limit);
+            return Ok(matches);
         }
         catch (Exception ex)
         {
