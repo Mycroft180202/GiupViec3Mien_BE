@@ -293,6 +293,129 @@ https://localhost:7004/api/Matching/{jobId}/{employerId}/rating -GET
     "score": 5
 }
 https://localhost:7004/api/Matching/nearest/00000000-0000-0000-0000-000000000000/distance?lat=1&lng=1&limit=5
+json response:
+[
+    {
+        "workerId": "a2178497-7623-484c-87e2-78a883a394ab",
+        "fullName": "Trần Văn Bếp (Far Match)",
+        "avatarUrl": null,
+        "matchScore": 0,
+        "gender": "Any",
+        "age": null,
+        "distanceKm": 11691.9,
+        "averageRating": 5,
+        "totalJobsPosted": 0,
+        "completedJobs": 0,
+        "trustLevel": "Medium",
+        "isVerified": false,
+        "verified": true,
+        "reviewCount": 1,
+        "experienceYears": 10,
+        "hourlyRate": 250000,
+        "budgetFitScore": 0,
+        "feedbackScore": 0,
+        "matchedSkills": [
+            "Nấu ăn",
+            "Dọn dẹp"
+        ]
+    },
+    {
+        "workerId": "a1eb0568-aca0-4878-9aaf-f3a6d0726ad6",
+        "fullName": "Trần Văn Bếp (Far Match)",
+        "avatarUrl": null,
+        "matchScore": 0,
+        "gender": "Any",
+        "age": null,
+        "distanceKm": 11691.9,
+        "averageRating": 5,
+        "totalJobsPosted": 0,
+        "completedJobs": 0,
+        "trustLevel": "Medium",
+        "isVerified": false,
+        "verified": true,
+        "reviewCount": 1,
+        "experienceYears": 10,
+        "hourlyRate": 250000,
+        "budgetFitScore": 0,
+        "feedbackScore": 0,
+        "matchedSkills": [
+            "Nấu ăn",
+            "Dọn dẹp"
+        ]
+    },
+    {
+        "workerId": "323cc0a1-8b0d-4603-b961-4994bf684471",
+        "fullName": "Trần Văn Bếp (Far Match)",
+        "avatarUrl": null,
+        "matchScore": 0,
+        "gender": "Any",
+        "age": null,
+        "distanceKm": 11691.9,
+        "averageRating": 5,
+        "totalJobsPosted": 0,
+        "completedJobs": 0,
+        "trustLevel": "Medium",
+        "isVerified": false,
+        "verified": true,
+        "reviewCount": 1,
+        "experienceYears": 10,
+        "hourlyRate": 250000,
+        "budgetFitScore": 0,
+        "feedbackScore": 0,
+        "matchedSkills": [
+            "Nấu ăn",
+            "Dọn dẹp"
+        ]
+    },
+    {
+        "workerId": "a3b058f5-638c-4650-8a73-211519f050d9",
+        "fullName": "Worker User",
+        "avatarUrl": null,
+        "matchScore": 0,
+        "gender": "Any",
+        "age": null,
+        "distanceKm": 0,
+        "averageRating": 0,
+        "totalJobsPosted": 0,
+        "completedJobs": 0,
+        "trustLevel": "Medium",
+        "isVerified": false,
+        "verified": false,
+        "reviewCount": 0,
+        "experienceYears": 0,
+        "hourlyRate": 0,
+        "budgetFitScore": 0,
+        "feedbackScore": 0,
+        "matchedSkills": [
+            "Cleaning",
+            "Cooking"
+        ]
+    },
+    {
+        "workerId": "0d62431d-54cb-4e41-9e9d-5e6542b4976e",
+        "fullName": "Ho Cong Thanh dev",
+        "avatarUrl": null,
+        "matchScore": 0,
+        "gender": "Any",
+        "age": null,
+        "distanceKm": 0,
+        "averageRating": 0,
+        "totalJobsPosted": 0,
+        "completedJobs": 0,
+        "trustLevel": "Medium",
+        "isVerified": false,
+        "verified": false,
+        "reviewCount": 0,
+        "experienceYears": 15,
+        "hourlyRate": 45000,
+        "budgetFitScore": 0,
+        "feedbackScore": 0,
+        "matchedSkills": [
+            "Giúp việc nhà",
+            "Nấu ăn"
+        ]
+    }
+]
 https://localhost:7004/api/Matching/{jobId}/{employerId}/distance
 {
     "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
