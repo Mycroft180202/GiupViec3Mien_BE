@@ -303,20 +303,22 @@ public class JobController : ControllerBase
     /// <summary>
     /// Seed mock job data for search testing.
     /// </summary>
-    [HttpPost("seed-search-data")]
-    public async Task<IActionResult> SeedJobs()
+    [HttpPost("seed-seekings")]
+    public async Task<IActionResult> SeedSeekings()
     {
-        var jobs = new List<object>
-        {
-            new { Title = "Cần người dọn dẹp nhà Cầu Giấy", Location = "Cầu Giấy, Hà Nội", Category = ServiceCategory.Housekeeping.ToString() },
-            new { Title = "Nấu ăn tối gia đình Quận 1", Location = "Quận 1, Hồ Chí Minh", Category = ServiceCategory.Cooking.ToString() },
-            new { Title = "Chăm sóc cụ già yếu", Location = "Hải Châu, Đà Nẵng", Category = ServiceCategory.ElderCare.ToString() }
+        var workerId = Guid.Parse("d9dbee23-8d65-44bd-8bfc-43520c9c0893"); // Use an existing user UI
+        var workerAd = new CreateJobRequest {
+            Title = "Giúp việc siêng năng - Nấu ăn ngon",
+            Description = "Tôi có kinh nghiệm 5 năm làm giúp việc nhà. Nấu ăn theo phong cách 3 miền.",
+            Location = "Quận 1, Hồ Chí Minh",
+            Price = 60000,
+            PostType = PostType.Seeking,
+            ServiceCategory = ServiceCategory.Housekeeping,
+            TimingType = JobTimingType.PartTime
         };
-
-        return Ok(new { 
-            message = "Mock list of search targets. Please refer to /Tests/SeedSearchData.cs to seed the actual database.",
-            sampleData = jobs
-        });
+        await _jobService.CreateJobAsync(workerId, workerAd);
+        return Ok(new { message = "Worker ad seeded." });
     }
+
 }
 

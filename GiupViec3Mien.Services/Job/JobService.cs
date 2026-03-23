@@ -361,12 +361,14 @@ public class JobService : IJobService
             Id = Guid.Parse(doc.Id), EmployerId = doc.EmployerId, EmployerName = doc.EmployerName, EmployerAvatarUrl = doc.EmployerAvatarUrl,
             CompanyHotline = "1900-xxxx (Giúp Việc 3 Miền Support)",
             Title = doc.Title, Description = doc.Description, Location = doc.Location, Price = doc.Price,
-            Latitude = doc.Coordinates?.Latitude ?? 0, Longitude = doc.Coordinates?.Longitude ?? 0,
+            Latitude = doc.Coordinates?.Lat ?? 0, Longitude = doc.Coordinates?.Lon ?? 0,
             RequiredSkills = doc.RequiredSkills ?? new List<string>(),
             Status = !string.IsNullOrEmpty(doc.Status) ? Enum.Parse<Domain.Enums.JobStatus>(doc.Status, true) : Domain.Enums.JobStatus.Open,
             PostType = !string.IsNullOrEmpty(doc.PostType) ? Enum.Parse<Domain.Enums.PostType>(doc.PostType, true) : Domain.Enums.PostType.Hiring,
-            TimingType = Domain.Enums.JobTimingType.PartTime, ServiceCategory = !string.IsNullOrEmpty(doc.Category) ? Enum.Parse<Domain.Enums.ServiceCategory>(doc.Category, true) : Domain.Enums.ServiceCategory.Other,
+            TimingType = !string.IsNullOrEmpty(doc.TimingType) ? Enum.Parse<Domain.Enums.JobTimingType>(doc.TimingType, true) : Domain.Enums.JobTimingType.PartTime,
+            ServiceCategory = !string.IsNullOrEmpty(doc.Category) ? Enum.Parse<Domain.Enums.ServiceCategory>(doc.Category, true) : Domain.Enums.ServiceCategory.Other,
             ApplicantCount = doc.ApplicantCount, CreatedAt = doc.CreatedAt
+
         };
     }
 

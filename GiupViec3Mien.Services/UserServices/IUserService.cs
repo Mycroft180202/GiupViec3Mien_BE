@@ -25,4 +25,6 @@ public interface IUserService
     Task<bool> DeleteUserAsync(Guid userId);
     Task LockUserAsync(Guid userId);
     Task UnlockUserAsync(Guid userId);
+    Task<IEnumerable<User>> GetAllWorkersWithProfilesAsync();
 }
+

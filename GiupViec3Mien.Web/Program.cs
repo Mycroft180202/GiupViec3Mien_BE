@@ -59,6 +59,8 @@ builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 builder.Services.AddScoped<IJobSearchService, JobSearchService>();
+builder.Services.AddScoped<IWorkerSearchService, WorkerSearchService>();
+
 
 // News Feed
 builder.Services.AddScoped<INewsPostRepository, NewsPostRepository>();
@@ -227,7 +229,7 @@ using (var scope = app.Services.CreateScope())
     HangfireJobRegistrar.RegisterJobs(scope.ServiceProvider);
 }
 
-app.Run();
+ app.Run();
 
 internal sealed class BearerSecuritySchemeTransformer : IOpenApiDocumentTransformer
 {

@@ -30,7 +30,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.WorkerProfile)
-            .Where(u => u.Role == Domain.Enums.Role.Worker && u.WorkerProfile != null)
+            .Where(u => u.Role == Domain.Enums.Role.Worker)
             .ToListAsync();
     }
 

@@ -199,6 +199,11 @@ public class UserService : IUserService
         await _userRepository.SaveChangesAsync();
     }
 
+    public async Task<IEnumerable<User>> GetAllWorkersWithProfilesAsync()
+    {
+        return await _userRepository.GetAllWorkersAsync();
+    }
+
     public async Task<AdminUserDetailResponse?> GetUserDetailAsync(Guid userId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
