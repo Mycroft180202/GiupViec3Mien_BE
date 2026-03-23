@@ -17,4 +17,11 @@ public class RegisterRequest
     
     [Required]
     public Role Role { get; set; }
+
+    [EmailAddress]
+    public string? Email { get; set; }
+
+    public GenderOption Gender { get; set; } = GenderOption.Any;
+
+    public DateTime? DateOfBirth { get; set; }
 }

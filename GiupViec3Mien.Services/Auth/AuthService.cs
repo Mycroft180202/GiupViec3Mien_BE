@@ -40,7 +40,10 @@ public class AuthService : IAuthService
             Phone = request.Phone,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             FullName = request.FullName,
-            Role = request.Role
+            Role = request.Role,
+            Email = request.Email,
+            Gender = request.Gender,
+            DateOfBirth = request.DateOfBirth
         };
 
         if (request.Role == Role.Worker)
