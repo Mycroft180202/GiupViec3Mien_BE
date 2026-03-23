@@ -878,3 +878,6 @@ Usage: Simply call this endpoint once after deploying these changes to populate 
 🔍 Summary of the New Elasticsearch Search System:
 Decoupled Sync: New jobs and updates are synced automatically via RabbitMQ.
 Advanced Features: Supports Fuzzy matching (typos), Proximity search (distance), and Fast listings (Zero-DB reads).
+---
+Elastic re-index:
+POST https://localhost:7004/api/Job/reindex-elasticsearch

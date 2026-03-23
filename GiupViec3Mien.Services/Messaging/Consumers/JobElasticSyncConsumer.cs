@@ -36,19 +36,18 @@ public class JobElasticSyncConsumer : IConsumer<JobIndexMessage>, IConsumer<JobD
             Id = msg.JobId.ToString(),
             Title = msg.Title,
             Description = msg.Description,
-            Category = msg.Category,
+            Category = msg.Category.ToLowerInvariant(),
             Price = msg.Price,
             Coordinates = new JobGeoPoint(msg.Lat, msg.Lon),
-
-
             RequiredSkills = skills,
-            Status = msg.Status,
-            PostType = msg.PostType,
+            Status = msg.Status.ToLowerInvariant(),
+            PostType = msg.PostType.ToLowerInvariant(),
             CreatedAt = msg.CreatedAt,
             EmployerId = msg.EmployerId,
             EmployerName = msg.EmployerName,
             EmployerAvatarUrl = msg.EmployerAvatarUrl,
             ApplicantCount = msg.ApplicantCount
+
         };
 
         // Create or update index

@@ -11,7 +11,9 @@ public class JobSearchFilters
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public JobTimingType? Timing { get; set; }
-    public PostType PostType { get; set; } = PostType.Hiring; // Default to hiring
+    public PostType? PostType { get; set; }
+
+
     
     // Geographical filter (optional)
     public double? Latitude { get; set; }

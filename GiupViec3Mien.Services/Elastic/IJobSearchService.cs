@@ -10,4 +10,6 @@ public interface IJobSearchService
     Task InitializeIndexAsync();
     Task ClearIndexAsync();
     Task BulkIndexAsync(IEnumerable<JobDocument> documents);
+    Task DeleteAsync(Guid jobId);
 }
+

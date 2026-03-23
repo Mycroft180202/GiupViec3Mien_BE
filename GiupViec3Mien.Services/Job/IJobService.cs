@@ -28,7 +28,8 @@ public interface IJobService
     Task<JobApplicationResponse?> AcceptApplicationAsync(Guid employerId, Guid applicationId);
     Task<IEnumerable<JobResponse>> GetJobsBySkillsAsync(IEnumerable<string> skills);
     Task<IEnumerable<JobResponse>> SearchJobsAsync(JobSearchFilters filters);
-    Task ReindexAllJobsAsync();
+    Task<int> ReindexAllJobsAsync();
+
 
     // Admin operations
     Task<IEnumerable<JobResponse>> GetAllJobsAsync();

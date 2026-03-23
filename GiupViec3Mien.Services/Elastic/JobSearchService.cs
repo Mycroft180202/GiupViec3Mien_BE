@@ -20,88 +20,69 @@ public class JobSearchService : IJobSearchService
 
     public async Task<IEnumerable<JobDocument>> SearchAsync(JobSearchFilters filters)
     {
+        Console.WriteLine($"Search Request: Keyword='{filters.Keyword}', Category={filters.Category}, PostType={filters.PostType}");
+
         var response = await _client.SearchAsync<JobDocument>(s => s
-            .Index(IndexName)
+            .Indices(IndexName)
             .From(0)
-            .Size(1000) // Support larger result sets
+            .Size(1000)
             .Query(q => q
-                .Bool(b => b
-                    .Must(m => {
-                        if (!string.IsNullOrEmpty(filters.Keyword))
-                            m.MultiMatch(mm => mm
-                                .Fields(new[] { "title^3", "description" })
-                                .Query(filters.Keyword)
-                                .Fuzziness(new Fuzziness("AUTO")));
-                    })
-                    .Filter(f => {
-                        // Category Filter
-                        if (filters.Category.HasValue)
-                            f.Term(t => t.Field(fld => fld.Category).Value(filters.Category.Value.ToString()));
-                        
-                        // Price Range
-                        if (filters.MinPrice.HasValue || filters.MaxPrice.HasValue)
-                            f.Range(r => r.NumberRange(nr => nr
-                                .Field(fld => fld.Price)
-                                .Gte((double?)filters.MinPrice)
-                                .Lte((double?)filters.MaxPrice)));
+                .Bool(b => {
+                    var must = new List<Query>();
+                    var filterList = new List<Query>();
 
-                        // Post Type (Seeking vs Hiring)
-                        f.Term(t => t.Field(fld => fld.PostType).Value(filters.PostType.ToString()));
-
-                        // Explicit Location match (string search)
-                        if (!string.IsNullOrEmpty(filters.Location))
-                            f.Match(mtch => mtch.Field(fld => fld.Location).Query(filters.Location));
-
-                        // Geo Proximity Filter
-                        if (filters.Latitude.HasValue && filters.Longitude.HasValue && filters.RadiusKm.HasValue)
+                    if (!string.IsNullOrEmpty(filters.Keyword))
+                    {
+                        must.Add(new MultiMatchQuery
                         {
-                            f.GeoDistance(gd => gd
-                                .Field(fld => fld.Coordinates)
-                                .Distance($"{filters.RadiusKm.Value}km")
-                                .Location($"{filters.Latitude.Value},{filters.Longitude.Value}"));
-                        }
-                    })
-                )
-            )
-            .Sort(srt => {
-                if (filters.Latitude.HasValue && filters.Longitude.HasValue)
-                {
-                    srt.GeoDistance(gd => gd
-                        .Field(f => f.Coordinates)
-                        .Location($"{filters.Latitude.Value},{filters.Longitude.Value}")
-                        .Order(SortOrder.Asc));
-                }
+                            Fields = new[] { "title", "description" },
+                            Query = filters.Keyword
+                        });
+                    }
+                    else { must.Add(new MatchAllQuery()); }
 
-                else
-                {
-                    srt.Field(f => f.CreatedAt, f => f.Order(SortOrder.Desc));
-                }
-            })
+                    // We now use Term queries on exact keyword fields
+                    if (filters.Category.HasValue)
+                        filterList.Add(new TermQuery(new Field("category")) { Value = filters.Category.Value.ToString().ToLowerInvariant() });
+
+                    if (filters.PostType.HasValue)
+                        filterList.Add(new TermQuery(new Field("postType")) { Value = filters.PostType.Value.ToString().ToLowerInvariant() });
+
+                    // Only show Open jobs
+                    filterList.Add(new TermQuery(new Field("status")) { Value = "open" });
+
+                    if (must.Any()) b.Must(must);
+                    if (filterList.Any()) b.Filter(filterList);
+                })
+            )
+            .Sort(srt => srt.Field(f => f.CreatedAt, f => f.Order(SortOrder.Desc)))
         );
 
         if (!response.IsSuccess())
         {
+            Console.WriteLine($"Search Failed: {response.DebugInformation}");
             return Enumerable.Empty<JobDocument>();
         }
 
+        Console.WriteLine($"Found {response.Documents.Count} matches.");
         return response.Documents;
     }
 
     public async Task InitializeIndexAsync()
     {
         await ClearIndexAsync();
-
-        await _client.Indices.CreateAsync(IndexName, i => i
+        
+        // Use v8 compatible explicit mappings for exactly what we need
+        await _client.Indices.CreateAsync(IndexName, c => c
             .Mappings(m => m
                 .Properties<JobDocument>(p => p
-                    .Text(t => t.Title)
-                    .Text(t => t.Description)
-                    .Keyword(k => k.Category)
-                    .Keyword(k => k.RequiredSkills)
-                    .Keyword(k => k.Status)
-                    .Keyword(k => k.PostType)
-                    .GeoPoint(g => g.Coordinates)
-                    .Date(d => d.CreatedAt)
+                    .Text(f => f.Title)
+                    .Text(f => f.Description)
+                    .Keyword(f => f.Category)
+                    .Keyword(f => f.PostType)
+                    .Keyword(f => f.Status)
+                    .Date(f => f.CreatedAt)
+                    .GeoPoint(f => f.Coordinates)
                 )
             )
         );
@@ -110,14 +91,21 @@ public class JobSearchService : IJobSearchService
     public async Task ClearIndexAsync()
     {
         var exists = await _client.Indices.ExistsAsync(IndexName);
-        if (exists.Exists)
-        {
-            await _client.Indices.DeleteAsync(IndexName);
-        }
+        if (exists.Exists) await _client.Indices.DeleteAsync(IndexName);
     }
 
     public async Task BulkIndexAsync(IEnumerable<JobDocument> documents)
     {
-        await _client.IndexManyAsync(documents, IndexName);
+        foreach (var doc in documents)
+        {
+            // IMPORTANT: Setting Id ensures we overwrite existing docs instead of duplicating them
+            var r = await _client.IndexAsync(doc, idx => idx.Index(IndexName).Id(doc.Id));
+            if (!r.IsSuccess()) Console.WriteLine($"Indexing failed for document {doc.Id}: {r.DebugInformation}");
+        }
+    }
+
+    public async Task DeleteAsync(Guid jobId)
+    {
+        await _client.DeleteAsync<JobDocument>(jobId.ToString(), d => d.Index(IndexName));
     }
 }

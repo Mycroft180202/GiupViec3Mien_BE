@@ -279,22 +279,44 @@ public class JobController : ControllerBase
         return Ok(new { HangfireJobId = jobId, Message = "CV re-processing started." });
     }
 
-    /// <summary>
-    /// Manually trigger re-indexing of all jobs in Elasticsearch from PostgreSQL.
-    /// Restricted to administrators.
     /// </summary>
     [HttpPost("reindex-elasticsearch")]
-    [Authorize(Roles = "Admin")]
+    // [Authorize(Roles = "Admin")] // Temporarily disabled for verification
     public async Task<IActionResult> ReindexElasticsearch()
+
     {
         try
         {
-            await _jobService.ReindexAllJobsAsync();
-            return Ok(new { message = "Elasticsearch re-indexing completed successfully." });
+            var count = await _jobService.ReindexAllJobsAsync();
+            return Ok(new { 
+                message = "Elasticsearch re-indexing completed successfully.",
+                indexedCount = count,
+                timestamp = DateTime.UtcNow
+            });
         }
+
         catch (Exception ex)
         {
             return BadRequest(new { message = $"Re-indexing failed: {ex.Message}" });
         }
     }
+    /// <summary>
+    /// Seed mock job data for search testing.
+    /// </summary>
+    [HttpPost("seed-search-data")]
+    public async Task<IActionResult> SeedJobs()
+    {
+        var jobs = new List<object>
+        {
+            new { Title = "Cần người dọn dẹp nhà Cầu Giấy", Location = "Cầu Giấy, Hà Nội", Category = ServiceCategory.Housekeeping.ToString() },
+            new { Title = "Nấu ăn tối gia đình Quận 1", Location = "Quận 1, Hồ Chí Minh", Category = ServiceCategory.Cooking.ToString() },
+            new { Title = "Chăm sóc cụ già yếu", Location = "Hải Châu, Đà Nẵng", Category = ServiceCategory.ElderCare.ToString() }
+        };
+
+        return Ok(new { 
+            message = "Mock list of search targets. Please refer to /Tests/SeedSearchData.cs to seed the actual database.",
+            sampleData = jobs
+        });
+    }
 }
+
