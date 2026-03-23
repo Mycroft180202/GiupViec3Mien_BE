@@ -146,12 +146,14 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("profile")]
+    [Authorize]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateUserProfileRequest request)
     {
         try
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+
 
             var userId = Guid.Parse(userIdClaim);
             await _userService.UpdateProfileAsync(userId, request);

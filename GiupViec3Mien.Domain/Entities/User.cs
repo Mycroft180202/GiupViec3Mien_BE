@@ -24,8 +24,7 @@ public class User
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     
-    [Column(TypeName = "jsonb")]
-    public string? AdditionalInfo { get; set; } // JSONB mapping for dynamic metadata
+    public string? AdditionalInfo { get; set; } // Address or other metadata
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

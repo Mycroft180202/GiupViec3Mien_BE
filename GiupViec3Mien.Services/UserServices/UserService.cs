@@ -212,7 +212,9 @@ public class UserService : IUserService
         user.DateOfBirth = request.DateOfBirth;
         user.Latitude = request.Latitude;
         user.Longitude = request.Longitude;
+        user.AdditionalInfo = request.AdditionalInfo;
         if (!string.IsNullOrEmpty(request.AvatarUrl)) user.AvatarUrl = request.AvatarUrl;
+
         
         if (user.Role == Domain.Enums.Role.Worker)
         {

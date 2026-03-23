@@ -549,6 +549,25 @@ My Seeking Ads	GET /api/Job/my-ads
 Worker
 Returns only the current worker's ads.
 Track Interest	GET /api/Job/{id}/applicants	Owner	Returns list of people (Homeowners or Workers) who applied.
+
+post/api/User/profile
+Shell Curl
+curl https://localhost:7004/api/User/profile \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "fullName": "",
+  "email": null,
+  "gender": 1,
+  "dateOfBirth": null,
+  "latitude": 1,
+  "longitude": 1,
+  "avatarUrl": null,
+  "additionalInfo": null,
+  "bio": null,
+  "experienceYears": 1,
+  "hourlyRate": 1
+}'
 -------------
 Hangfire:
 monitor the progress of these requests at: http://localhost:5275/hangfire
