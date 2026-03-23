@@ -6,6 +6,10 @@ namespace GiupViec3Mien.Services.Interfaces;
 public interface IUserRepository
 {
     Task<User?> GetByPhoneAsync(string phone);
+    Task<User?> GetByIdAsync(Guid id);
+    Task<IEnumerable<User>> GetAllWorkersAsync();
+    Task<IEnumerable<User>> GetAllAsync();
     Task AddAsync(User user);
+    Task DeleteAsync(User user);
     Task SaveChangesAsync();
 }

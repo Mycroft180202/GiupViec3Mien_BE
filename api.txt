@@ -1,0 +1,856 @@
+https://docs.google.com/document/d/1XVp7zE74C8LgI0jSw62BMrZ1EhfUoSBt/edit
+
+https://localhost:7004/api/Matching/{jobId}/topmatch
+[
+  {
+    "workerId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "matchScore": 95.5
+  },
+  {
+    "workerId": "7d21a5b8-...",
+    "matchScore": 88.2
+  }
+]
+Request: GET /api/User/freelancer/3fa85f64-5717-4562-b3fc-2c963f66afa6
+json
+{
+  "id": "3fa85f64...",
+  "fullName": "Le Thi B",
+  "phone": "0912345678",
+  "email": "lethib@example.com",
+  "avatarUrl": "https://cloudinary.com/...",
+  "gender": "Female",
+  "age": 32,
+  "latitude": 10.762622,
+  "longitude": 106.660172,
+  "bio": "Expert in housekeeping and childcare with 7 years of local experience.",
+  "experienceYears": 7,
+  "hourlyRate": 150000,
+  "verified": true,
+  "skills": ["Cooking", "Housekeeping", "Babysitting"],
+  "joinedAt": "2024-01-15T09:00:00Z"
+}
+
+---
+Chủ nhà có thể:
+Tạo tin đăng tuyển giúp việc
+Chỉnh sửa hoặc xóa tin đăng
+Xem danh sách ứng viên đã ứng tuyển
+        -	Ứng viên có thể:
+Tạo tin đăng tìm việc
+Chỉnh sửa hoặc xóa tin đăng
+Xem danh sách chủ nhà đã ứng tuyển 
+
+For Homeowners (Employers)
+Create Hiring Post: POST /api/Job to find helpers with specific criteria (Address, Age, Skills, Salary).
+Edit/Delete: PUT /api/Job/{id} and DELETE /api/Job/{id} (restricted to the post owner).
+Manage Applicants: GET /api/Job/{id}/applicants allows the homeowner to see a list of workers interested in their job.
+Note: Contact information is masked unless you have an active Premium Subscription.
+💼 For Freelancers (Workers)
+Create Seeking Ad: POST /api/Job/seeking to advertise availability and service type.
+Edit/Delete: PUT /api/Job/{id} and DELETE /api/Job/{id} to manage their own advertisements.
+Manage Leads: Freelancers use the same GET /api/Job/{id}/applicants on their own "Seeking" ads to see homeowners who have expressed interest in hiring them.
+
+Tin đăng bao gồm các thông tin:
+Tiêu đề công việc
+Loại công việc (Full-time, Part-time, theo lịch)
+Loại dịch vụ (giúp việc nhà, trông trẻ, chăm sóc người già,...)
+Mức lương
+Địa điểm làm việc
+Thời gian làm việc
+Giới tính
+Tuổi 
+Mô tả công việc
+Kỹ năng làm việc
+
+For Homeowners (Employers):
+Endpoint: POST /api/Job
+Creates a "Hiring" post to find helpers.
+For Freelancers (Workers):
+Endpoint: POST /api/Job/seeking
+Creates a "Seeking" advertisement to find work.
+📦 Standardized Information Fields
+Both types of posts capture the following comprehensive details as per your requirements:
+
+Field	Description	DTO Property
+Title	Job or working title	Title
+Job Type	Full-time, Part-time, Scheduled	TimingType
+Service Category	Housekeeping, Childcare, Elder care, etc.	ServiceCategory
+Salary/Price	Budget or expected rate	Price
+Location	Address and Geo-coordinates	Location, Lat, Long
+Working Time	Detailed schedule description	WorkingTimeDescription
+Gender	Preferred gender for the role	PreferredGender
+Age Range	Target age bracket (e.g., "20-40")	TargetAgeRange
+Job Description	Detailed requirements	Description
+Required Skills	List of specific skills (JSON format)	RequiredSkills
+------
+2.2.4. Ứng tuyển công việc
+Người giúp việc có thể ứng tuyển vào các công việc phù hợp.
+Sau khi ứng tuyển:
+Chủ nhà có thể xem danh sách ứng viên
+Chủ nhà có thể xem thông tin hồ sơ của ứng viên
+Tuy nhiên:
+Thông tin liên hệ của ứng viên sẽ bị ẩn
+Chủ nhà cần mua gói dịch vụ để xem thông tin liên hệ
+---
+Subscription System:
+
+Added HasPremiumAccess and PremiumExpiry to the 
+
+User
+ entity.
+This tracks which homeowners have paid for the service package to see full contact details.
+Contact Information Masking:
+
+When viewing a list of applicants (GET /api/Job/{id}/applicants) or a specific freelancer's profile (GET /api/User/freelancer/{workerId}), the phone and email address are automatically masked (e.g., 091****678, le***@gmail.com).
+Full Disclosure criteria: Information is only unmasked if:
+The requester is an Admin.
+The requester is the Worker themselves (viewing their own profile).
+The requester is an Employer with an active Premium Subscription.
+------
+2.2.5. Liên hệ giữa chủ nhà và người giúp việc
+Sau khi người giúp việc bấm quan tâm hoặc ứng tuyển, hệ thống sẽ:
+Hiển thị hotline của công ty
+Hỗ trợ kết nối giữa hai bên
+Trong trường hợp chủ nhà mua gói dịch vụ, hệ thống sẽ:
+Hiển thị hồ sơ của ứng viên
+
+Official Company Hotline:
+
+Added CompanyHotline to all job details and application responses.
+This ensures that as soon as a worker applies or a homeowner views an applicant, they have immediate access to the GiupViec3Mien Support Team for assistance.
+Smart Contact Disclosure (Gatekeeping):
+
+Phase 1 (Discovery): When browsing jobs or profiles, direct contact info (Phone/Email) is masked (e.g., 098****123).
+Phase 2 (Interaction): The system encourages the use of the platform and the official hotline for initial connections.
+Phase 3 (Premium/Safe Access): Full profiles and contact details are unmasked only for:
+Premium Subscription holders (Homeowners who purchased a package).
+Assigned Workers (Once a job is officially started).
+Admins (For mediation and support).
+------
+2.1.1. Quản lý tài khoản người dùng
+Cho người dùng chung:
+Đăng ký tài khoản
+Đăng nhập
+Cập nhật hồ sơ cá nhân 
+Quản lý thông tin liên hệ
+
+System Dashboard: GET /api/Admin/stats provides real-time counts for Total Users, Active Jobs, Total Applications, and Locked Accounts.
+Service Package Management: Admins can now Create, Edit, and Delete subscription plans via api/Admin/packages. These plans define features like contact disclosure access and priority job placement.
+Account & Content Moderation: Admins have full authority to lock/unlock users and remove violating job posts with automated email alerts to the owners.
+2. Advanced Search & Matching (Req 2.2.3)
+Multi-Criteria Search: GET /api/Job/search supports filtering by Category, Price Range, Working Time (Full/Part-time), and Keyword
+------
+2.2.6. Quản lý hệ thống (Admin)
+Quản trị viên có thể:
+Quản lý tài khoản người dùng
+Quản lý tin đăng
+Xóa tin vi phạm
+Khóa tài khoản nếu cần thiết
+Theo dõi hoạt động hệ thống
+Quản lý các gói dịch vụ trên hệ thống 
+
+2.1.7 Dashboard và quản lý gói dịch vụ
+Admin có Dashboard quản lý hệ thống, bao gồm:
+Tổng số người dùng
+Tổng số tin đăng
+Số lượng ứng tuyển
+Thống kê hoạt động hệ thống
+Quản lý gói dịch vụ
+Admin có thể:
+Tạo gói dịch vụ
+Chỉnh sửa gói dịch vụ
+Xóa gói dịch vụ
+Các gói dịch vụ cho phép:
+Chủ nhà xem thông tin liên hệ của ứng viên
+Xem nhiều hồ sơ ứng viên hơn
+Ưu tiên hiển thị tin đăng
+
+
+User Management:
+List All Users: GET /api/Admin/users provides a comprehensive view of all accounts, including their role, registration date, and subscription status.
+Account Locking/Unlocking: POST /api/Admin/users/{id}/lock and unlock allow administrators to immediately suspend accounts violating community standards. Suspended users are automatically kicked out and blocked from logging back in.
+Job & Ad Moderation:
+Full Oversight: GET /api/Admin/jobs lists every hiring post and seeking ad on the platform.
+Violating Content Removal: DELETE /api/Admin/jobs/{id} allows admins to remove inappropriate posts. This action automatically triggers an email notification to the owner explaining the policy violation.
+System Health Dashboard:
+Real-time Stats: GET /api/Admin/stats provides a heartbeat of the platform (Total Users, Active Premium Subscriptions, Locked Accounts, etc.).
+
+------
+Endpoint	Feature
+GET /api/admin/users	List all accounts
+GET /api/admin/users/{id}	Full user detail
+PUT /api/admin/users/{id}	Update user (role, premium, locked, etc.)
+DELETE /api/admin/users/{id}	Permanently delete account
+POST /api/admin/users/{id}/lock	Khóa tài khoản
+POST /api/admin/users/{id}/unlock	Mở khóa tài khoản
+GET /api/admin/jobs	List all job posts
+DELETE /api/admin/jobs/{id}	Xóa tin vi phạm (with email notification)
+PATCH /api/admin/jobs/{id}/status	Override job status
+GET /api/admin/packages	List packages (incl. inactive)
+POST /api/admin/packages	Create package
+PUT /api/admin/packages/{id}	Update package
+PATCH /api/admin/packages/{id}/toggle-active	Toggle package on/off
+DELETE /api/admin/packages/{id}	Delete package
+GET /api/admin/stats	Full system dashboard (users/jobs/packages/apps breakdown)
+GET /api/admin/activity-logs	Paginated audit log
+GET /api/admin/activity-logs/{entityType}/{entityId}	Audit history for a specific entity
+POST /api/admin/trigger-job-cleanup	Manual Hangfire trigger
+POST /api/admin/trigger-newsletter	Manual Hangfire trigger
+------
+2.1.8 Bảng tin – Khóa đào tạo 
+Bảng tin (News Feed)
+Website cung cấp bảng tin để chia sẻ:
+Kinh nghiệm giúp việc
+Mẹo chăm sóc trẻ
+Mẹo chăm sóc người già
+Thông báo tuyển dụng
+…..
+Khóa đào tạo
+Hệ thống có thể cung cấp khóa đào tạo cho người giúp việc:
+Ví dụ:
+Kỹ năng chăm sóc trẻ
+Kỹ năng chăm sóc người cao tuổi
+Kỹ năng dọn dẹp nhà cửa
+
+GET /api/newsfeed — Public, paginated, filterable by category + search
+GET /api/newsfeed/{id} — Public detail + auto view count
+GET /api/newsfeed/admin — Admin: all posts incl. drafts
+POST /api/newsfeed — Admin: create post (draft or publish)
+PUT /api/newsfeed/{id} — Admin: update post
+DELETE /api/newsfeed/{id} — Admin: delete post
+POST /api/newsfeed/{id}/publish — Admin: publish draft
+POST /api/newsfeed/{id}/unpublish — Admin: revert to draft
+GET /api/courses — Public, paginated, filter by category/level/search
+GET /api/courses/{id} — Public detail; lesson content gated (preview / enrolled / free)
+POST /api/courses/{id}/enroll — Auth: enroll in course
+POST /api/courses/{id}/complete — Auth: mark completed
+GET /api/courses/my-courses — Auth: enrolled courses
+GET /api/courses/admin — Admin: all courses incl. unpublished
+POST /api/courses — Admin: create course
+PUT /api/courses/{id} — Admin: update course
+DELETE /api/courses/{id} — Admin: delete (cascade lessons + enrollments)
+POST /api/courses/{id}/publish — Admin: publish
+POST /api/courses/{id}/unpublish — Admin: unpublish
+POST /api/courses/{id}/lessons — Admin: add lesson
+PUT /api/courses/lessons/{lessonId} — Admin: update lesson
+DELETE /api/courses/lessons/{lessonId} — Admin: delete lesson
+------
+https://localhost:7004/api/Job/{jobId}/apply -POST
+Endpoint: POST http://localhost:5275/api/Job/{jobId}/apply
+Request Type: multipart/form-data
+Parameters:
+Key	Type	Description
+message	
+
+text
+(Optional) Your pitch to the employer.
+bidPrice	number	(Optional) Your proposed rate.
+cv	
+
+File
+New. Support: .pdf, .docx, 
+
+.txt
+, .doc.
+2. Result JSON (Response)
+Upon success, the API returns the Cloudinary URL for the uploaded CV.
+
+Example Response:
+
+json
+{
+  "id": "741a719b-e2d6-4bfb-b949-c4b5947c7325",
+  "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+  "applicantId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+  "applicantName": "Nguyễn Văn A",
+  "message": "Tôi gửi CV đính kèm.",
+  "bidPrice": 160000.0,
+  "cvurl": "https://res.cloudinary.com/dlanmiqsh/raw/upload/v12345/GiupViec3Mien/CVs/my_cv.pdf",
+  "appliedAt": "2026-03-14T13:25:00Z",
+  "isAccepted": false
+}
+https://localhost:7004/api/User/uploadprofile
+{
+    "imgurl": "https://res.cloudinary.com/dlanmiqsh/image/upload/v1773385731/2026/03/13/741a719b-e2d6-4bfb-b949-c4b5947c7325/myimg_ofuuu5.png"
+}
+https://localhost:7004/api/User/updateskill -POST
+[
+  "Nấu ăn",
+  "Dọn dẹp",
+  "Chăm sóc trẻ",
+  "Đi chợ"
+]
+response:
+{
+  "message": "Skills updated successfully."
+}
+https://localhost:7004/api/Matching/{jobId}/{employerId}/rating -GET
+{
+    "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+    "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+    "averageRating": 4.5,
+    "score": 5
+}
+https://localhost:7004/api/Matching/{jobId}/{employerId}/distance
+{
+    "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+    "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+    "distanceKm": 11830.91
+}
+https://localhost:7004/api/{employerId}/avgrating
+{
+  "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+  "averageRating": 4.8
+}
+https://localhost:7004/api/Matching/{jobId}/{employerId}/matchskill
+{
+    "jobId": "22c89166-...",
+    "employerId": "5a4d1d5b-...",
+    "matchedSkills": ["Nấu ăn", "Dọn dẹp"]
+}
+https://localhost:7004/api/Feedback/{jobId}/{employerId}/rating
+{
+    "score": 5
+}
+https://localhost:7004/api/Matching/{employerId}/experience
+{
+  "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+  "totalJobsPosted": 15,
+  "completedJobs": 12,
+  "averageRating": 4.8,
+  "reviewCount": 10,
+  "isVerified": true,
+  "trustLevel": "High"
+}
+https://localhost:7004/api/Matching/{jobId}/{employerId}/budgetrate
+{
+  "jobId": "...",
+  "employerId": "...",
+  "budgetFitScore": 100
+}
+Service Layer: Added 
+
+GetBudgetFitScoreAsync
+ to 
+
+MatchingService
+ which performs real-time currency comparison between Job.Price and WorkerProfile.HourlyRate.
+---------------
+["Nấu ăn", "Dọn dẹp", "Chăm sóc trẻ"]
+
+[
+  {
+    "fullName": "Nguyễn Thị Sạch (Best Match)",
+    "matchScore": 98.5,
+    "distanceKm": 0.73,
+    "averageRating": 4.5,
+    "matchedSkills": ["Dọn dẹp", "Nấu ăn"]
+  },
+  {
+    "fullName": "Trần Văn Bếp (Far Match)",
+    "matchScore": 70,
+    "distanceKm": 9.32,
+    "averageRating": 5,
+    "matchedSkills": ["Nấu ăn", "Dọn dẹp"]
+  },
+  {
+    "fullName": "Lê Văn Mới (Weak Match)",
+    "matchScore": 63.5,
+    "distanceKm": 0.5,
+    "averageRating": 2.5,
+    "matchedSkills": ["Dọn dẹp"]
+  }
+]
+Factor	Weight	Why it matters
+Location (Geo-Proximity)	40%	Most important for domestic services; workers shouldn't travel too far.
+Skill Alignment	30%	Matches the worker's skills (JSONB field) against job requirements.
+Reputation (Ratings)	15%	Higher average stars from Reviews boost the score.
+Experience & Trust	10%	Years of experience and Verified status (Identity proof).
+Budget Fit	5%	Matches the worker's HourlyRate with the job's Price.
+
+API Endpoint	Method	Description
+/api/Job/my-applications	GET	New. Returns a JSON list of every job/demand the current user has already applied to, including bid prices and timestamps.
+/api/Job/{id}/my-application	GET	New. Returns the specific application details for a single jobId. If the user hasn't applied, it returns a 404 Not Found.
+/api/Job/{id}/applicants	GET	(For Owners) Lists all users who have expressed interest in their job.
+Response Body:
+json
+[
+  {
+    "id": "741a719b-e2d6-4bfb-b949-c4b5947c7325",
+    "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+    "applicantId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+    "applicantName": "Nguyễn Văn A",
+    "message": "Tôi sẵn sàng nhận việc vào cuối tuần này.",
+    "bidPrice": 160000.0,
+    "appliedAt": "2026-03-14T11:48:00Z",
+    "isAccepted": false
+  },
+  {
+    "id": "0ac26da3-b82a-49da-9958-61de4165cbed",
+    "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+    "applicantId": "d2aaeb1e-e2d6-4bfb-b949-c4b5947c7325",
+    "applicantName": "Công ty Dịch vụ Hoàn Mỹ",
+    "message": "Chúng tôi có đội ngũ chuyên nghiệp sẵn sàng ngay.",
+    "bidPrice": 180000.0,
+    "appliedAt": "2026-03-14T11:50:00Z",
+    "isAccepted": false
+  }
+]
+API Endpoint	Method	Description
+/api/Job	POST	Create Job: Client submits title, description, budget, and coordinates.
+Request Body:
+json
+{
+  "title": "Dọn dẹp nhà cửa định kỳ",
+  "description": "Cần tìm người dọn dẹp căn hộ 2 phòng ngủ, làm việc vào sáng thứ 7 hàng tuần.",
+  "location": "123 Đường ABC, Quận 1, TP.HCM",
+  "price": 250000.00,
+  "latitude": 10.7769,
+  "longitude": 106.7009
+}
+Response Body:
+json
+{
+  "id": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
+  "employerId": "c97b1460-0324-4b82-8ebb-c88962ea8777",
+  "title": "Dọn dẹp nhà cửa định kỳ",
+  "description": "Cần tìm người dọn dẹp căn hộ 2 phòng ngủ, làm việc vào sáng thứ 7 hàng tuần.",
+  "location": "123 Đường ABC, Quận 1, TP.HCM",
+  "price": 250000.0,
+  "status": 0,
+  "createdAt": "2026-03-14T11:46:00Z"
+}
+
+/api/Job/my-jobs	GET	Dashboard: Lists all jobs posted by the logged-in client.
+[
+  {
+    "id": "guid",
+    "title": "Dọn dẹp nhà chung cư Quận 1",
+    "price": 200000.0,
+    "status": 1,                       // InProgress
+    "applicantCount": 12,              // Added: See how many people applied
+    "assignedWorkerId": "guid",        // Added: Identify the staff
+    "assignedWorkerName": "Nguyễn Văn H hired worker", // Added: Display staff name
+    "createdAt": "2026-03-14T13:40:00Z"
+  }
+]
+/api/Job/{id}/applicants	GET	Review: Lists all Freelancers who have applied, including their bid prices and messages.
+Response Body:
+[
+  {
+    "id": "guid",
+    "jobId": "guid",
+    "applicantId": "guid",
+    "applicantName": "Nguyễn Văn A",
+    "message": "Tôi gửi CV đính kèm.",
+    "bidPrice": 160000.0,
+    "cvUrl": "https://res.cloudinary.com/.../my_cv.pdf", // Field is present here
+    "appliedAt": "2026-03-14T13:25:00Z",
+    "isAccepted": false
+  }
+]
+/api/Job/applications/{id}/accept	POST	Hire: (New) Accepts a specific application. This automatically sets the job to InProgress and assigns the Freelancer to the job.
+{
+  "id": "741a719b-e2d6-...",
+  "jobId": "5b2aa9bb-...",
+  "jobTitle": "Dọn dẹp nhà chung cư Quận 1",
+  "jobPrice": 200000.0,
+  "applicantId": "c97b1460-...",
+  "applicantName": "Nguyễn Văn A",
+  "message": "Tôi sẵn sàng làm việc.",
+  "bidPrice": 180000.0,
+  "cvUrl": "https://...",
+  "appliedAt": "2026-03-14T13:25:00Z",
+  "isAccepted": true  // Now TRUE, confirming the hire
+}
+API Endpoint	Method	Description
+/api/Job/available	GET	Marketplace: Lists all open jobs nearby. Used in conjunction with matching scores.
+[
+  {
+    "id": "guid",
+    "employerId": "guid",
+    "employerName": "Bà Nguyễn Thị Chủ Nhà",    // Added for Trust
+    "employerAvatarUrl": "https://...",        // Added for Trust
+    "title": "Dọn dẹp nhà chung cư Quận 1",
+    "description": "Cần người dọn dẹp gấp...",
+    "location": "Quận 1, TP.HCM",
+    "price": 200000.0,
+    "latitude": 10.7769,                        // Added for Geo-filtering
+    "longitude": 106.7009,                      // Added for Geo-filtering
+    "requiredSkills": "[\"Dọn dẹp\", \"Nấu ăn\"]", // Added for Skill-Matching context
+    "status": 0,
+    "createdAt": "2026-03-14T13:40:00Z"
+  }
+]
+/api/Job/my-applications	GET	History: Lists all jobs the freelancer has applied to and the status of those bids.
+[
+  {
+    "id": "guid",
+    "jobId": "guid",
+    "jobTitle": "Dọn dẹp nhà chung cư Quận 1",  // Added for easy listing
+    "jobPrice": 200000.0,                      // Added for bid comparison
+    "applicantId": "guid",
+    "applicantName": "Nguyễn Văn A",
+    "message": "Tôi sẵn sàng làm việc.",
+    "bidPrice": 180000.0,
+    "cvUrl": "https://...",
+    "appliedAt": "2026-03-14T13:25:00Z",
+    "isAccepted": false
+  }
+]
+/api/Job/{id}/my-application	GET	Status: Detailed view of a single bid, showing if it has been "Accepted" by the client.
+{
+  "id": "guid",
+  "jobId": "guid",
+  "applicantName": "Nguyễn Văn A",
+  "message": "Tôi gửi CV đính kèm.",
+  "bidPrice": 160000.0,
+  "cvUrl": "https://res.cloudinary.com/.../my_cv.pdf", // Integrated across all APIs
+  "appliedAt": "2026-03-14T13:25:00Z",
+  "isAccepted": false
+}
+
+GET /api/Job/filter-by-skills?skills=Cleaning,Cooking
+json
+[
+  {
+    "id": "ea3529f9-...",
+    "title": "Nấu ăn gia đình 4 người",
+    "requiredSkills": ["Cooking", "Housework"],
+    "status": 0,
+    "price": 200000,
+    "employerName": "Nguyễn Chủ Nhà",
+    "createdAt": "2026-03-17T03:19..."
+  },
+  {
+    "id": "df241582-...",
+    "title": "Dọn dẹp nhà cửa 4 tầng",
+    "requiredSkills": ["Cleaning", "Housework"],
+    "status": 0,
+    "price": 300000,
+    "employerName": "Nguyễn Chủ Nhà",
+    "createdAt": "2026-03-17T02:19..."
+  }
+]
+
+Post Hiring Job	POST /api/Job	
+
+Employer
+Automatically sets type to Hiring.
+Post Seeking Ad	POST /api/Job/seeking	
+
+.
+Edit Post	PUT /api/Job/{id}	Owner	Updates Title, Description, Skills, etc.
+Delete Post	DELETE /api/Job/{id}	Owner	Permanently removes the entry.
+Browse Worker Ads	GET /api/Job/worker-ads	Any	Returns a list of all workers looking for jobs.
+My Seeking Ads	GET /api/Job/my-ads	
+
+Worker
+Returns only the current worker's ads.
+Track Interest	GET /api/Job/{id}/applicants	Owner	Returns list of people (Homeowners or Workers) who applied.
+-------------
+Hangfire:
+monitor the progress of these requests at: http://localhost:5275/hangfire
+1. System Administration (
+
+AdminController
+)
+Created a dedicated controller for system-wide background maintenance.
+
+POST /api/Admin/trigger-job-cleanup: Manually trigger the 30-day job expiration logic.
+POST /api/Admin/trigger-newsletter: Manually start the weekly newsletter broadcast.
+POST /api/Admin/setup-recurring-newsletter: Reset or update the weekly Monday 9:00 AM schedule.
+2. Job & Recruitment Management (
+
+JobController
+)
+Added endpoints to manage specific background recruitment tasks.
+
+POST /api/Job/{id}/trigger-matching: Manually re-trigger the worker-matching algorithm for a job.
+POST /api/Job/applications/{appId}/reprocess-cv: Manually re-enqueue CV processing if the initial upload failed.
+3. User & Worker Engagement (
+
+UserController
+)
+Added worker-specific management tasks.
+
+POST /api/User/{userId}/send-reminder: Manually send a profile completion reminder to a specific worker.
+
+Daily Cleanup	
+
+JobExpirationJob
+Every day at midnight. Automatically cancels/expires jobs older than 30 days.
+Email Newsletters	
+
+NewsletterJob
+Every Monday at 9:00 AM. Sends automated updates to all registered users.
+Follow-up Reminders	
+
+ProfileReminderJob
+Triggered in AuthService.RegisterAsync. Schedules an email 2 hours after a worker registers if their profile is still incomplete.
+
+implemented the requested Hangfire (PostgreSQL) infrastructure to handle heavy business logic and reliable delivery with automatic retries and a monitoring dashboard.
+Storage: Hangfire is now configured to use your PostgreSQL database, ensuring all background tasks are persistent across server restarts.
+Dashboard: The Monitoring Dashboard is available at /hangfire. I've added a secure authorization filter (
+
+HangfireAuthorizationFilter.cs
+) and human-readable job names for better observability.
+Automatic Retries: We've implemented a global policy of 5 automatic retries with exponential backoff for all background tasks.
+Offloading Heavy Logic (CV Processing)
+
+Endpoint	Method	Description
+/api/HangfireTest/enqueue-email	POST	Enqueues a one-off email job.
+/api/HangfireTest/schedule-reminder	POST	Schedules a reminder with a custom delay.
+/api/HangfireTest/trigger-cleanup-now	POST	Runs the 30-day job cleanup logic immediately.
+/api/HangfireTest/register-recurring	POST	Registers a test recurring job that runs every minute.
+---Job Implementation: 
+
+JobMatchingJob.cs
+ is triggered by the 
+
+MatchingConsumer
+. It performs the calculations and then enqueues reliable individual emails via 
+
+SendEmailJob
+.
+File	Responsibility
+
+ProcessCVJob.cs
+Reliable, background file processing & upload.
+
+JobService.cs
+Updated to offload heavy file I/O to Hangfire.
+
+CloudinaryService.cs
+Extended with byte[] upload support for background processing.
+
+Program.cs
+Centralized config for PostgreSQL storage and retries.
+
+https://docs.google.com/document/d/1nO_z0R8Cgdnsjips-077gI0qupBH5_DsyDahjyakPEQ/edit?tab=t.0
+
+API Endpoint	Method	Description
+/chatHub	WS	SignalR Hub: Connect here for real-time messaging.
+/api/Chat/history/{roomId}	GET	Chat History: Retrieves all past messages for a specific room.
+/api/Chat/room-id/{fId}/{cId}	GET	Helper: Generates the consistent Room ID for a Freelancer/Client pair.
+
+1. Seed Data Generated
+I created a robust seeder at 
+
+GiupViec3Mien.Persistence/Seeders/SeedTestChat.cs
+ that performs the following:
+
+Users Created:
+Freelancer: 10af465d-9a1d-4ceb-abc8-91450451803a (Trần Thợ Điện)
+Client: f70a5f84-1f09-425e-b50e-19dd60e398cc (Nguyễn Chủ Nhà)
+Chat History: Seeded 3 initial messages between them to simulate a real conversation about availability.
+
+2. API Testing Results
+I verified the endpoints using the seeded data:
+
+Test 1: Room ID Generation
+Endpoint: GET /api/Chat/room-id/{freelancerId}/{clientId}
+Result: Successfully generated the combined ID: 10af465d-9a1d-4ceb-abc8-91450451803a_f70a5f84-1f09-425e-b50e-19dd60e398cc
+Note: The logic consistently sorts the IDs to ensure the room is shared between both users.
+Test 2: Chat History Retrieval
+Endpoint: GET /api/Chat/history/{roomId}
+Result: Successfully retrieved the conversation history.
+json
+[
+  { "senderId": "...cc", "message": "Chào bạn, bạn có rảnh vào sáng mai không?" },
+  { "senderId": "...3a", "message": "Chào anh, tôi rảnh ạ. Mấy giờ tôi có thể qua được?" },
+  { "senderId": "...cc", "message": "Tầm 9h sáng nhé bạn." }
+]
+
+net8smtpmail zajh nkrp qwem hxgz
+tested:
+test chat and send email:Freelancer: thanhhovn2016@gmail.com
+Client: thanhhovn2016@yandex.com
+
+. Integration with Hiring Workflow
+I updated the JobService.AcceptApplicationAsync method to trigger a congratulatory email whenever an employer accepts an application.
+
+Trigger: Triggered via POST /api/Job/applications/{id}/accept.
+Recipient: The specific Freelancer (Worker) who applied for the job.
+2. Email Content
+The freelancer receives a stylized HTML email containing:
+
+Congratulatory Header: A vibrant notice of their successful application.
+Job Details: Displays the Title of the job they were hired for.
+Employer Identity: Mentions the name of the Client who hired them.
+Next Steps: Encourages them to start communicating with the client via the in-app chat.
+3. Technical Implementation
+Injection: 
+
+IEmailService
+ is now a dependency of 
+
+JobService
+.
+Resilience: The email send logic is wrapped in an asynchronous try-catch block to ensure that if the SMTP server is busy, the actual database transaction (hiring) still completes successfully.
+Data Accuracy: The system uses the Applicant.Email fetched directly from the database to ensure the notification reaches the correct user.
+4. Verification Success
+Tested the flow end-to-end:
+
+Status: Success
+Log: Application accepted and email sent to thanhhovn2016@gmail.com
+Context: Verified for the job "Test Job for Acceptance".
+
+1. Notification for Clients (Employers)
+I updated the JobService.ApplyToJobAsync method to automatically notify the employer whenever a freelancer applies for their job.
+
+Trigger: Triggered via POST /api/Job/{id}/apply.
+Recipient: The Client (Employer) who posted the job.
+Content: The email includes:
+Job Title: The specific job being applied for.
+Freelancer Identity: The name of the interested worker.
+Bid Price: The proposed cost from the freelancer.
+Message: The freelancer's pitch or introduction.
+Direct Link: A call-to-action button to review the application in the dashboard.
+2. Technical Enhancements
+Data Consistency: The 
+
+JobService
+ now uses 
+
+IUserRepository
+ to fetch the freelancer's profile details to personalizing the email content.
+Performance: The notification logic is asynchronous, ensuring the freelancer's application process remains fast and responsive.
+Reliability: Includes error handling to ensure job applications are always saved even if there are temporary issues with the email server.
+3. Verification Success
+I performed an end-to-end test of the workflow:
+
+Status: Success
+Result: Application submitted and notification email sent to client (thanhhovn2016@yandex.com).
+Job Context: Verified with a sample "Garden Maintenance Service" posting.
+-------------
+RabbitMq integrate:
+RabbitMQ Implementation Overview
+Case	Implementation Detail	Location
+1. Email Decoupling	Emails are now published via 
+
+SendEmailMessage
+. The 
+
+EmailConsumer
+ handles the actual SMTP delivery asynchronously.	
+
+ChatHub
+, 
+
+JobService
+2. Background Matching	When a job is created, a 
+
+JobPostedEvent
+ is published. 
+
+MatchingConsumer
+ then performs location & skill calculations without blocking the client.	JobService.CreateJobAsync
+3. File Processing	Added 
+
+ProcessCvTask
+ contract and hooks in 
+
+ApplyToJobAsync
+ to offload CV parsing and sanitization in the future.	JobService.ApplyToJobAsync
+4. Real-time Analytics	
+
+AnalyticsEvent
+ messages are published for key actions (Job Created, Applied, Accepted) to be logged by 
+
+AnalyticsConsumer
+.	
+
+JobService
+5. Transactional Bursts	Job applications are now queued via 
+
+JobApplicationTask
+. 
+
+ApplicationConsumer
+ processes these sequentially to prevent DB lock contention.
+
+implemented the Background Chat Persistence flow using RabbitMQ.
+
+Enhancements Made
+Contract Update: Added 
+
+MessageSentEvent
+ to 
+
+Messaging/Messages.cs
+ to capture all context needed for background processing (Sender, Receiver, Message, Room).
+New 
+
+ChatConsumer
+: Created a dedicated consumer that handles:
+Asynchronous Database Saving: Persists the chat history to PostgreSQL using IChatService.
+Asynchronous Email Notifications: Fetches user details and triggers a 
+
+SendEmailMessage
+ task.
+Analytics: Logs the chat event for later analysis.
+Thin 
+
+ChatHub
+: Refactored 
+
+ChatHub
+ to be extremely lightweight. It now only:
+Publishes the event to RabbitMQ.
+Immediately broadcasts the message via SignalR.
+Benefit: Users no longer have to wait for the database or email server before seeing their message appear in the chat window.
+Immediate Advantages
+Zero-Latency Chat: SignalR broadcasting is now independent of database performance.
+Resilience: If the database is busy or the email server is offline, the chat remains functional while RabbitMQ retries the background tasks in the background.
+Scalability: You can now scale your chat processing workers separately from your real-time SignalR servers.
+
+---------------
+The RabbitMQ integration is now 100% verified across all prioritized use cases. I have successfully tested the asynchronous flow for Job Creation, Applications, and Email Notifications.
+
+Verified Test Results
+Feature	Action Taken	Result
+Job Creation	Created "Final RabbitMQ Test Job" via API	Asynchronous: Triggered 
+
+MatchingConsumer
+ and 
+
+EmailConsumer
+ in the background.
+Skill Matching	(Triggered by Job Creation)	Background Success: Logged [MatchingService] Calculating best matches... without stalling the API.
+Job Application	Worker applied to the new job	Bursted Success: API returned immediately with GUID empty (JobApplicationTask queued).
+Email Offloading	(Triggered by both above)	Background Success: Logged [EmailService] Sending email to... via the dedicated 
+
+EmailConsumer
+.
+Technical Improvements Made:
+MassTransit Versioning: Resolved the "License Required" startup crash by using MassTransit 8.2.5, which is compatible with your environment.
+Decoupled Workflow:
+Phase A (Publisher): 
+
+JobService
+ and 
+
+ChatHub
+ now only publish events. They no longer wait for the database or SMTP server.
+Phase B (Consumer): Five dedicated consumers (
+
+Email
+, 
+
+Chat
+, 
+
+Application
+, 
+
+Matching
+, 
+
+Analytics
+) process work in parallel using your Docker RabbitMQ instance (guest/guest).
+Logging: Added system-level logging to 
+
+EmailService
+ and Consumers so you can monitor background tasks in the terminal

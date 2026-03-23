@@ -10,6 +10,7 @@ using GiupViec3Mien.Services.DTOs.Auth;
 using GiupViec3Mien.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Hangfire;
 
 namespace GiupViec3Mien.Services.Auth;
 
@@ -17,11 +18,13 @@ public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public AuthService(IUserRepository userRepository, IConfiguration configuration)
+    public AuthService(IUserRepository userRepository, IConfiguration configuration, IBackgroundJobClient backgroundJobClient)
     {
         _userRepository = userRepository;
         _configuration = configuration;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
@@ -48,6 +51,15 @@ public class AuthService : IAuthService
         await _userRepository.AddAsync(user);
         await _userRepository.SaveChangesAsync();
 
+        // Follow-up Reminder (scheduled for 2 hours later)
+        if (request.Role == Role.Worker)
+        {
+            _backgroundJobClient.Schedule<BackgroundJobs.ProfileReminderJob>(
+                job => job.SendReminderAsync(user.Id), 
+                TimeSpan.FromHours(2)
+            );
+        }
+
         return CreateResponse(user);
     }
 
@@ -57,6 +69,11 @@ public class AuthService : IAuthService
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
             throw new Exception("Số điện thoại hoặc mật khẩu không đúng.");
+        }
+
+        if (user.IsLocked)
+        {
+            throw new Exception("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
         }
 
         return CreateResponse(user);
