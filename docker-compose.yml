@@ -54,7 +54,7 @@ services:
       - es_data:/usr/share/elasticsearch/data
     restart: always
 
-volumes:
+volumes: 
   postgres_data:
   redis_data:
   rabbitmq_data:
