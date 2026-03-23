@@ -1,4 +1,5 @@
 using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.IndexManagement;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using GiupViec3Mien.Services.DTOs.Job;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ public class JobSearchService : IJobSearchService
 
     public async Task<IEnumerable<JobDocument>> SearchAsync(JobSearchFilters filters)
     {
-        Console.WriteLine($"Search Request: Keyword='{filters.Keyword}', Category={filters.Category}, PostType={filters.PostType}");
+        Console.WriteLine($"Search Request: Keyword='{filters.Keyword}', Category={filters.Category}, PostType={filters.PostType}, MinPrice={filters.MinPrice}, MaxPrice={filters.MaxPrice}, Location='{filters.Location}', Timing={filters.Timing}");
 
         var response = await _client.SearchAsync<JobDocument>(s => s
             .Indices(IndexName)
@@ -41,12 +42,29 @@ public class JobSearchService : IJobSearchService
                     }
                     else { must.Add(new MatchAllQuery()); }
 
-                    // We now use Term queries on exact keyword fields
                     if (filters.Category.HasValue)
                         filterList.Add(new TermQuery(new Field("category")) { Value = filters.Category.Value.ToString().ToLowerInvariant() });
 
                     if (filters.PostType.HasValue)
                         filterList.Add(new TermQuery(new Field("postType")) { Value = filters.PostType.Value.ToString().ToLowerInvariant() });
+
+                    if (filters.Timing.HasValue)
+                        filterList.Add(new TermQuery(new Field("timingType")) { Value = filters.Timing.Value.ToString().ToLowerInvariant() });
+
+                    if (!string.IsNullOrEmpty(filters.Location))
+                    {
+                        // Match partial location if needed, otherwise Term
+                        filterList.Add(new MatchQuery(new Field("location")) { Query = filters.Location });
+                    }
+
+                    if (filters.MinPrice.HasValue || filters.MaxPrice.HasValue)
+                    {
+                        filterList.Add(new NumberRangeQuery(new Field("price")) 
+                        { 
+                            Gte = (double?)filters.MinPrice, 
+                            Lte = (double?)filters.MaxPrice 
+                        });
+                    }
 
                     // Only show Open jobs
                     filterList.Add(new TermQuery(new Field("status")) { Value = "open" });
@@ -78,10 +96,13 @@ public class JobSearchService : IJobSearchService
                 .Properties<JobDocument>(p => p
                     .Text(f => f.Title)
                     .Text(f => f.Description)
+                    .Text(f => f.Location) // Use text for partial matching with search keyword or location filter
                     .Keyword(f => f.Category)
                     .Keyword(f => f.PostType)
                     .Keyword(f => f.Status)
+                    .Keyword(f => f.TimingType)
                     .Date(f => f.CreatedAt)
+                    .DoubleNumber(f => f.Price)
                     .GeoPoint(f => f.Coordinates)
                 )
             )
@@ -98,7 +119,6 @@ public class JobSearchService : IJobSearchService
     {
         foreach (var doc in documents)
         {
-            // IMPORTANT: Setting Id ensures we overwrite existing docs instead of duplicating them
             var r = await _client.IndexAsync(doc, idx => idx.Index(IndexName).Id(doc.Id));
             if (!r.IsSuccess()) Console.WriteLine($"Indexing failed for document {doc.Id}: {r.DebugInformation}");
         }

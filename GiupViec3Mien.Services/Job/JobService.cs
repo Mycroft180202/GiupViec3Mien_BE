@@ -411,7 +411,9 @@ public class JobService : IJobService
             Coordinates = (job.Latitude != 0 || job.Longitude != 0) ? new Elastic.JobGeoPoint(job.Latitude, job.Longitude) : null,
             RequiredSkills = string.IsNullOrEmpty(job.RequiredSkills) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(job.RequiredSkills) ?? new List<string>(),
             Status = job.Status.ToString().ToLowerInvariant(), PostType = job.PostType.ToString().ToLowerInvariant(),
+            TimingType = job.TimingType.ToString().ToLowerInvariant(),
             CreatedAt = job.CreatedAt, EmployerId = job.EmployerId, EmployerName = job.Employer?.FullName ?? "Unknown", EmployerAvatarUrl = job.Employer?.AvatarUrl, ApplicantCount = job.Applications?.Count ?? 0
+
         };
     }
 }

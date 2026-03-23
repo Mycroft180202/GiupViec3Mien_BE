@@ -27,6 +27,8 @@ public class JobDocument
     public string Category { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string PostType { get; set; } = string.Empty;
+    public string TimingType { get; set; } = string.Empty;
+
     
     public List<string> RequiredSkills { get; set; } = new();
     
