@@ -18,4 +18,6 @@ public interface IMatchingService
     Task<double> GetJobRatingAsync(Guid jobId, Guid reviewerId, Guid revieweeId);
     Task<object> GetEmployerRatingAsync(Guid jobId, Guid currentUserId, Guid employerId);
     Task<double> GetDistanceKmAsync(Guid jobId, Guid employerId);
+    Task<List<MatchResultDto>> GetNearestWorkersByDistanceAsync(double lat, double lng, int limit = 10);
 }
+

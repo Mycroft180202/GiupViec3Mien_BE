@@ -292,6 +292,7 @@ https://localhost:7004/api/Matching/{jobId}/{employerId}/rating -GET
     "averageRating": 4.5,
     "score": 5
 }
+https://localhost:7004/api/Matching/nearest/00000000-0000-0000-0000-000000000000/distance?lat=1&lng=1&limit=5
 https://localhost:7004/api/Matching/{jobId}/{employerId}/distance
 {
     "jobId": "5b2aa9bb-8638-456e-a38a-0de6b6386a72",
@@ -901,6 +902,7 @@ Advanced Features: Supports Fuzzy matching (typos), Proximity search (distance),
 Elastic re-index:
 GET /api/Job/search?PostType=1
 api GET:https://localhost:7004/api/Job/search
+GET http://localhost:5275/api/Job/search?PostType=0 --- Get all jobs
 api GET:https://localhost:7004/api/Job/search?PostType=1
 Search Logic
 When you include PostType=1 in the request:

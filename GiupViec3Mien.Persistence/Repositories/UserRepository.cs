@@ -33,6 +33,22 @@ public class UserRepository : IUserRepository
             .Where(u => u.Role == Domain.Enums.Role.Worker)
             .ToListAsync();
     }
+    
+    public async Task<IEnumerable<User>> GetNearestWorkersAsync(double lat, double lng, int limit = 10)
+    {
+        return await _context.Users
+            .FromSqlRaw($@"
+                SELECT * FROM ""Users"" 
+                WHERE ""Role"" = 2 
+                ORDER BY ST_Distance(
+                    ST_SetSRID(ST_MakePoint(""Longitude"", ""Latitude""), 4326)::geography, 
+                    ST_SetSRID(ST_MakePoint({lng}, {lat}), 4326)::geography
+                )
+                LIMIT {limit}")
+            .Include(u => u.WorkerProfile)
+            .ToListAsync();
+    }
+
 
     public async Task<IEnumerable<User>> GetAllAsync()
     {

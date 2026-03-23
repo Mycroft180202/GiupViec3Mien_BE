@@ -458,7 +458,40 @@ public class MatchingService : IMatchingService
         return Math.Round(distance, 2);
     }
 
+    public async Task<List<MatchResultDto>> GetNearestWorkersByDistanceAsync(double lat, double lng, int limit = 10)
+    {
+        var workers = await _userRepository.GetNearestWorkersAsync(lat, lng, limit);
+        var results = new List<MatchResultDto>();
+
+        foreach (var worker in workers)
+        {
+            var profile = worker.WorkerProfile!;
+            double distance = CalculateDistance(lat, lng, worker.Latitude, worker.Longitude);
+            
+            var reviews = await _reviewRepository.GetByRevieweeIdAsync(worker.Id);
+            double avgRating = reviews.Any() ? Math.Round(reviews.Average(r => r.Rating), 1) : 0;
+
+            results.Add(new MatchResultDto
+            {
+                WorkerId = worker.Id,
+                FullName = worker.FullName,
+                AvatarUrl = worker.AvatarUrl,
+                DistanceKm = Math.Round(distance, 2),
+                AverageRating = avgRating,
+                ReviewCount = reviews.Count(),
+                Gender = worker.Gender.ToString(),
+                ExperienceYears = profile.ExperienceYears,
+                HourlyRate = profile.HourlyRate,
+                Verified = profile.Verified,
+                MatchedSkills = DeserializeSkills(profile.Skills)
+            });
+        }
+
+        return results;
+    }
+
     private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+
     {
         if (lat2 == 0 && lon2 == 0) return 0;
         

@@ -213,4 +213,22 @@ public class MatchingController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+    [HttpGet("nearest/{employerId}/distance")]
+    [Authorize]
+    public async Task<IActionResult> GetNearestWorkers(Guid employerId, [FromQuery] double lat, [FromQuery] double lng, [FromQuery] int limit = 10)
+
+
+
+    {
+        try
+        {
+            var results = await _matchingService.GetNearestWorkersByDistanceAsync(lat, lng, limit);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }
+
