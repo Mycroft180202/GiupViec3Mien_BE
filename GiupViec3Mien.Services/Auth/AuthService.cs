@@ -60,7 +60,7 @@ public class AuthService : IAuthService
             );
         }
 
-        return CreateResponse(user);
+        return await CreateResponseAsync(user);
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
@@ -76,7 +76,7 @@ public class AuthService : IAuthService
             throw new Exception("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
         }
 
-        return CreateResponse(user);
+        return await CreateResponseAsync(user);
     }
 
     public async Task<AuthResponse> GuestCheckoutAsync(string phone, string fullName)
@@ -100,20 +100,79 @@ public class AuthService : IAuthService
             await _userRepository.SaveChangesAsync();
         }
 
-        return CreateResponse(user);
+        return await CreateResponseAsync(user);
     }
 
-    private AuthResponse CreateResponse(User user)
+    private async Task<AuthResponse> CreateResponseAsync(User user)
     {
         var token = GenerateJwtToken(user);
+        var refreshToken = GenerateRefreshToken();
+        
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7); // Token expiry setup
+        
+        _userRepository.Update(user);
+        await _userRepository.SaveChangesAsync();
 
         return new AuthResponse
         {
             Token = token,
+            RefreshToken = refreshToken,
             FullName = user.FullName,
             Role = user.Role,
             Phone = user.Phone
         };
+    }
+
+    public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+    {
+        var principal = GetPrincipalFromExpiredToken(request.Token);
+        if (principal == null)
+            throw new Exception("Invalid access token or refresh token.");
+
+        var phone = principal.Claims.FirstOrDefault(c => c.Type == "Phone")?.Value;
+        if (string.IsNullOrEmpty(phone))
+            throw new Exception("Invalid access token or refresh token.");
+
+        var user = await _userRepository.GetByPhoneAsync(phone);
+        
+        if (user == null || user.RefreshToken != request.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+        {
+            throw new Exception("Invalid access token or refresh token.");
+        }
+
+        return await CreateResponseAsync(user);
+    }
+    
+    private ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
+    {
+        var jwtSettings = _configuration.GetSection("JwtSettings");
+        var secretKey = jwtSettings["Secret"] ?? "MySuperSecretKeyForGiupViec3MienApiIsHere!!123";
+        
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateAudience = false,
+            ValidateIssuer = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ValidateLifetime = false // Ignore token expiration
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+        var jwtSecurityToken = securityToken as JwtSecurityToken;
+        if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            throw new SecurityTokenException("Invalid token.");
+
+        return principal;
+    }
+
+    private string GenerateRefreshToken()
+    {
+        var randomNumber = new byte[32];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
     }
 
     private string GenerateJwtToken(User user)
@@ -136,7 +195,7 @@ public class AuthService : IAuthService
             issuer: jwtSettings["Issuer"],
             audience: jwtSettings["Audience"],
             claims: claims,
-            expires: DateTime.Now.AddDays(7),
+            expires: DateTime.Now.AddDays(1), // Setting short expiry for Access Token (1 Day)
             signingCredentials: creds
         );
 

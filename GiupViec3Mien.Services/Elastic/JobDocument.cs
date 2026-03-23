@@ -13,7 +13,7 @@ public class JobDocument
     public string Location { get; set; } = string.Empty;
     
     // Elasticsearch Geo-point structure
-    public Location Coordinates { get; set; }
+    public global::Elastic.Clients.Elasticsearch.LatLonGeoLocation Coordinates { get; set; }
     
     public decimal Price { get; set; }
     public string Category { get; set; } = string.Empty;

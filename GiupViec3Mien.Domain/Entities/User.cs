@@ -18,6 +18,9 @@ public class User
     public DateTime? PremiumExpiry { get; set; }
     public bool IsLocked { get; set; } = false;
     
+    public string? RefreshToken { get; set; }
+    public DateTime? RefreshTokenExpiryTime { get; set; }
+    
     public GenderOption Gender { get; set; } = GenderOption.Any;
     public DateTime? DateOfBirth { get; set; }
     

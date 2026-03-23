@@ -458,8 +458,8 @@ public class JobService : IJobService
             Description = doc.Description,
             Location = doc.Location,
             Price = doc.Price,
-            Latitude = doc.Coordinates.Latitude,
-            Longitude = doc.Coordinates.Longitude,
+            Latitude = doc.Coordinates?.Lat ?? 0,
+            Longitude = doc.Coordinates?.Lon ?? 0,
             RequiredSkills = doc.RequiredSkills,
             Status = Enum.Parse<Domain.Enums.JobStatus>(doc.Status),
             PostType = Enum.Parse<Domain.Enums.PostType>(doc.PostType),
@@ -501,6 +501,8 @@ public class JobService : IJobService
         return jobs
             .GroupBy(j => j.Status)
             .ToDictionary(g => g.Key, g => g.Count());
+    }
+    
     public async Task ReindexAllJobsAsync()
     {
         await _jobSearchService.InitializeIndexAsync();
@@ -515,7 +517,7 @@ public class JobService : IJobService
             Location = job.Location,
             Category = job.ServiceCategory.ToString(),
             Price = job.Price,
-            Coordinates = new Location(job.Latitude, job.Longitude),
+            Coordinates = new global::Elastic.Clients.Elasticsearch.LatLonGeoLocation { Lat = job.Latitude, Lon = job.Longitude },
             RequiredSkills = string.IsNullOrEmpty(job.RequiredSkills) 
                 ? new List<string>() 
                 : JsonSerializer.Deserialize<List<string>>(job.RequiredSkills) ?? new List<string>(),

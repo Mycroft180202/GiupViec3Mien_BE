@@ -54,7 +54,7 @@ public class JobSearchService : IJobSearchService
                             f.GeoDistance(gd => gd
                                 .Field(fld => fld.Coordinates)
                                 .Distance($"{filters.RadiusKm.Value}km")
-                                .Location(new Location(filters.Latitude.Value, filters.Longitude.Value)));
+                                .Location(new global::Elastic.Clients.Elasticsearch.LatLonGeoLocation { Lat = filters.Latitude.Value, Lon = filters.Longitude.Value }));
                         }
                     })
                 )
@@ -65,7 +65,7 @@ public class JobSearchService : IJobSearchService
                 {
                     srt.GeoDistance(gd => gd
                         .Field(f => f.Coordinates)
-                        .Location(new Location(filters.Latitude.Value, filters.Longitude.Value))
+                        .Location(new global::Elastic.Clients.Elasticsearch.LatLonGeoLocation { Lat = filters.Latitude.Value, Lon = filters.Longitude.Value })
                         .Order(SortOrder.Asc));
                 }
                 else
@@ -83,6 +83,8 @@ public class JobSearchService : IJobSearchService
         }
 
         return response.Documents;
+    }
+    
     public async Task InitializeIndexAsync()
     {
         await ClearIndexAsync();
@@ -97,7 +99,7 @@ public class JobSearchService : IJobSearchService
                     .Keyword(k => k.Status)
                     .Keyword(k => k.PostType)
                     .GeoPoint(g => g.Coordinates)
-                    .Double(d => d.Price)
+                    .DoubleNumber(d => d.Price)
                     .Date(d => d.CreatedAt)
                 )
             )

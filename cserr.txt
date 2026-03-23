@@ -1,0 +1,8 @@
+D:\NhatHn_Project\GiupViec3Mien_BE\GiupViec3Mien.Services\Job\JobService.cs(461,25): error CS0039: Cannot convert type 'Elastic.Clients.Elasticsearch.GeoLocation' to 'Elastic.Clients.Elasticsearch.LatLonGeoLocation' via a reference conversion, boxing conversion, unboxing conversion, wrapping conversion, or null type conversion [D:\NhatHn_Project\GiupViec3Mien_BE\GiupViec3Mien.Services\GiupViec3Mien.Services.csproj]
+D:\NhatHn_Project\GiupViec3Mien_BE\GiupViec3Mien.Services\Job\JobService.cs(462,26): error CS0039: Cannot convert type 'Elastic.Clients.Elasticsearch.GeoLocation' to 'Elastic.Clients.Elasticsearch.LatLonGeoLocation' via a reference conversion, boxing conversion, unboxing conversion, wrapping conversion, or null type conversion [D:\NhatHn_Project\GiupViec3Mien_BE\GiupViec3Mien.Services\GiupViec3Mien.Services.csproj]
+
+Build FAILED.
+    3 Warning(s)
+    2 Error(s)
+
+Time Elapsed 00:00:01.38
