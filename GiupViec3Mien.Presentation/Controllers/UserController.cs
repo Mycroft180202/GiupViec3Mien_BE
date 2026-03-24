@@ -226,4 +226,28 @@ public class UserController : ControllerBase
 
         return Ok(info);
     }
+
+    [HttpGet("workers/public")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicWorkers([FromQuery] PublicWorkerSearchRequest request)
+    {
+        var workers = await _userService.GetPublicWorkersAsync(request);
+        return Ok(workers);
+    }
+
+    [HttpGet("workers/public/{workerId}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicWorkerProfile(Guid workerId)
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        Guid.TryParse(userIdString, out var requesterId);
+
+        var worker = await _userService.GetPublicWorkerProfileAsync(workerId, requesterId);
+        if (worker == null)
+        {
+            return NotFound(new { message = "Worker profile not found or is not public." });
+        }
+
+        return Ok(worker);
+    }
 }

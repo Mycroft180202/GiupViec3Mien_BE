@@ -26,6 +26,9 @@ public class JobResponse
     public ServiceCategory ServiceCategory { get; set; }
     
     public string? WorkingTimeDescription { get; set; }
+    public DateTime? WorkDate { get; set; }
+    public string? WorkStartTime { get; set; }
+    public string? WorkEndTime { get; set; }
     public GenderOption PreferredGender { get; set; }
     public string? TargetAgeRange { get; set; }
 

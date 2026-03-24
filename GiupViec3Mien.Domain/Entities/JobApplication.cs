@@ -1,4 +1,5 @@
 using System;
+using GiupViec3Mien.Domain.Enums;
 
 namespace GiupViec3Mien.Domain.Entities;
 
@@ -15,7 +16,9 @@ public class JobApplication
     public string? Message { get; set; }
     public decimal BidPrice { get; set; }
     public string? CvUrl { get; set; }
+    public DateTime? AvailableStartDate { get; set; }
     
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
     public bool IsAccepted { get; set; } = false;
+    public ApplicationStatus Status { get; set; } = ApplicationStatus.Pending;
 }

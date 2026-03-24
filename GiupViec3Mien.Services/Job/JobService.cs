@@ -26,6 +26,7 @@ public class JobService : IJobService
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly GiupViec3Mien.Services.Elastic.IJobSearchService _jobSearchService;
     private readonly INotificationService _notificationService;
+    private readonly IDistributedLockService _distributedLockService;
 
     public JobService(IJobRepository jobRepository, 
                       IJobApplicationRepository applicationRepository, 
@@ -34,7 +35,8 @@ public class JobService : IJobService
                       IUserRepository userRepository,
                       IBackgroundJobClient backgroundJobClient,
                       GiupViec3Mien.Services.Elastic.IJobSearchService jobSearchService,
-                      INotificationService notificationService)
+                      INotificationService notificationService,
+                      IDistributedLockService distributedLockService)
     {
         _jobRepository = jobRepository;
         _applicationRepository = applicationRepository;
@@ -44,10 +46,13 @@ public class JobService : IJobService
         _backgroundJobClient = backgroundJobClient;
         _jobSearchService = jobSearchService;
         _notificationService = notificationService;
+        _distributedLockService = distributedLockService;
     }
 
     public async Task<JobResponse> CreateJobAsync(Guid employerId, CreateJobRequest request)
     {
+        ValidateJobSchedule(request);
+
         var job = new Domain.Entities.Job
         {
             EmployerId = employerId,
@@ -62,6 +67,9 @@ public class JobService : IJobService
             TimingType = request.TimingType,
             ServiceCategory = request.ServiceCategory,
             WorkingTimeDescription = request.WorkingTimeDescription,
+            WorkDate = request.WorkDate?.Date,
+            WorkStartTime = request.WorkStartTime,
+            WorkEndTime = request.WorkEndTime,
             PreferredGender = request.PreferredGender,
             TargetAgeRange = request.TargetAgeRange
         };
@@ -103,6 +111,8 @@ public class JobService : IJobService
         var job = await _jobRepository.GetByIdAsync(jobId);
         if (job == null || job.EmployerId != userId) return null;
 
+        ValidateJobSchedule(request);
+
         job.Title = request.Title;
         job.Description = request.Description;
         job.Location = request.Location;
@@ -114,6 +124,9 @@ public class JobService : IJobService
         job.TimingType = request.TimingType;
         job.ServiceCategory = request.ServiceCategory;
         job.WorkingTimeDescription = request.WorkingTimeDescription;
+        job.WorkDate = request.WorkDate?.Date;
+        job.WorkStartTime = request.WorkStartTime;
+        job.WorkEndTime = request.WorkEndTime;
         job.PreferredGender = request.PreferredGender;
         job.TargetAgeRange = request.TargetAgeRange;
         job.UpdatedAt = DateTime.UtcNow;
@@ -199,6 +212,33 @@ public class JobService : IJobService
         var job = await _jobRepository.GetByIdAsync(jobId);
         if (job == null) throw new Exception("Job not found.");
 
+        var applicant = await _userRepository.GetByIdAsync(userId);
+        if (applicant == null) throw new Exception("Applicant not found.");
+        if (applicant.Role != Domain.Enums.Role.Worker)
+        {
+            throw new Exception("Chỉ tài khoản người tìm việc mới có thể ứng tuyển.");
+        }
+
+        if (job.Status != Domain.Enums.JobStatus.Open || job.AssignedWorkerId.HasValue)
+        {
+            throw new Exception("Tin tuyển dụng này đã chốt người hoặc không còn nhận ứng tuyển.");
+        }
+
+        if (!request.AvailableStartDate.HasValue)
+        {
+            throw new Exception("Vui lòng chọn ngày bạn có thể bắt đầu làm.");
+        }
+
+        if (request.AvailableStartDate.Value.Date < DateTime.Today)
+        {
+            throw new Exception("Ngày bắt đầu làm không được ở quá khứ.");
+        }
+
+        if (job.WorkDate.HasValue && request.AvailableStartDate.Value.Date > job.WorkDate.Value.Date)
+        {
+            throw new Exception("Ngày bạn có thể bắt đầu làm đang muộn hơn lịch mà chủ nhà yêu cầu.");
+        }
+
         var existing = await _applicationRepository.GetByApplicantAndJobAsync(userId, jobId);
         if (existing != null) throw new Exception("You have already applied to this job.");
 
@@ -227,7 +267,7 @@ public class JobService : IJobService
 
         // Point 5: Handling Bursts - Publish task
         var bidPrice = request.BidPrice > 0 ? request.BidPrice : job.Price;
-        await _publishEndpoint.Publish(new JobApplicationTask(userId, jobId, request.Message ?? "", bidPrice, cvUrl));
+        await _publishEndpoint.Publish(new JobApplicationTask(userId, jobId, request.Message ?? "", bidPrice, cvUrl, request.AvailableStartDate?.Date));
 
         // Point 4: Analytics
         await _publishEndpoint.Publish(new AnalyticsEvent("JobApplied", userId, $"JobId: {jobId}"));
@@ -239,8 +279,10 @@ public class JobService : IJobService
             Message = request.Message,
             BidPrice = bidPrice,
             CvUrl = cvUrl,
+            AvailableStartDate = request.AvailableStartDate?.Date,
             AppliedAt = DateTime.UtcNow,
-            IsAccepted = false
+            IsAccepted = false,
+            Status = Domain.Enums.ApplicationStatus.Pending
         };
     }
 
@@ -277,13 +319,16 @@ public class JobService : IJobService
             JobPrice = a.Job?.Price ?? 0,
             ApplicantId = a.ApplicantId,
             ApplicantName = a.Applicant?.FullName ?? "Unknown",
+            ApplicantAvatarUrl = a.Applicant?.AvatarUrl,
             ApplicantPhone = fullAccess ? a.Applicant?.Phone : MaskContact(a.Applicant?.Phone),
             ApplicantEmail = fullAccess ? a.Applicant?.Email : MaskContact(a.Applicant?.Email),
             Message = a.Message,
             BidPrice = a.BidPrice,
             CvUrl = a.CvUrl,
+            AvailableStartDate = a.AvailableStartDate,
             AppliedAt = a.AppliedAt,
-            IsAccepted = a.IsAccepted
+            IsAccepted = a.IsAccepted,
+            Status = a.Status
         };
     }
 
@@ -320,19 +365,65 @@ public class JobService : IJobService
 
     public async Task<JobApplicationResponse?> AcceptApplicationAsync(Guid employerId, Guid applicationId)
     {
+        await using var distributedLock = await _distributedLockService.TryAcquireAsync(
+            $"locks:job-application:accept:{applicationId}",
+            TimeSpan.FromSeconds(15));
+
+        if (distributedLock == null)
+        {
+            throw new Exception("Hệ thống đang xử lý thao tác nhận ứng viên này. Vui lòng thử lại sau vài giây.");
+        }
+
         var application = await _applicationRepository.GetByIdAsync(applicationId);
         if (application == null) return null;
 
         var job = await _jobRepository.GetByIdAsync(application.JobId);
         if (job == null || job.EmployerId != employerId) return null;
 
+        if (application.Status == Domain.Enums.ApplicationStatus.Rejected)
+        {
+            throw new Exception("Không thể nhận một hồ sơ đã bị từ chối.");
+        }
+
+        if (application.Status == Domain.Enums.ApplicationStatus.Accepted || application.IsAccepted)
+        {
+            return MapToApplicationResponse(application, true);
+        }
+
+        if (job.AssignedWorkerId.HasValue && job.AssignedWorkerId != application.ApplicantId)
+        {
+            throw new Exception("Tin tuyển dụng này đã nhận người làm khác.");
+        }
+
+        if (job.Status != Domain.Enums.JobStatus.Open && job.Status != Domain.Enums.JobStatus.InProgress)
+        {
+            throw new Exception("Tin tuyển dụng này không còn ở trạng thái có thể nhận ứng viên.");
+        }
+
+        var hasConflict = await HasScheduleConflictAsync(application.ApplicantId, job, job.Id);
+        if (hasConflict)
+        {
+            throw new Exception("Ứng viên này đang có lịch làm trùng giờ với công việc đã được nhận trước đó.");
+        }
+
         // Update application
         application.IsAccepted = true;
+        application.Status = Domain.Enums.ApplicationStatus.Accepted;
 
         // Update job
         job.Status = Domain.Enums.JobStatus.InProgress;
         job.AssignedWorkerId = application.ApplicantId;
         job.UpdatedAt = DateTime.UtcNow;
+
+        var siblingApplications = (await _applicationRepository.GetByJobIdAsync(job.Id))
+            .Where(a => a.Id != application.Id && a.Status == Domain.Enums.ApplicationStatus.Pending)
+            .ToList();
+
+        foreach (var sibling in siblingApplications)
+        {
+            sibling.Status = Domain.Enums.ApplicationStatus.Rejected;
+            sibling.IsAccepted = false;
+        }
 
         await _applicationRepository.SaveChangesAsync();
         await _jobRepository.SaveChangesAsync();
@@ -374,6 +465,16 @@ public class JobService : IJobService
             $"Chúc mừng bạn! Tin '{job.Title}' đã chấp nhận hồ sơ của bạn.",
             "/dashboard/viec-da-ung-tuyen");
 
+        foreach (var sibling in siblingApplications)
+        {
+            await _notificationService.CreateAsync(
+                sibling.ApplicantId,
+                "application_rejected",
+                "Đơn ứng tuyển không được chọn",
+                $"Tin '{job.Title}' đã nhận ứng viên khác phù hợp hơn.",
+                "/dashboard/viec-da-ung-tuyen");
+        }
+
         return MapToApplicationResponse(application, true);
     }
 
@@ -391,15 +492,28 @@ public class JobService : IJobService
             return false;
         }
 
-        if (application.IsAccepted)
+        if (application.IsAccepted || application.Status == Domain.Enums.ApplicationStatus.Accepted)
         {
             throw new Exception("Khong the tu choi ung vien da duoc nhan.");
         }
 
-        await _applicationRepository.DeleteAsync(application);
+        if (application.Status == Domain.Enums.ApplicationStatus.Rejected)
+        {
+            return true;
+        }
+
+        application.Status = Domain.Enums.ApplicationStatus.Rejected;
+        application.IsAccepted = false;
         await _applicationRepository.SaveChangesAsync();
 
         await _publishEndpoint.Publish(new AnalyticsEvent("ApplicationRejected", employerId, $"AppId: {applicationId}"));
+
+        await _notificationService.CreateAsync(
+            application.ApplicantId,
+            "application_rejected",
+            "Đơn ứng tuyển đã bị từ chối",
+            $"Rất tiếc, tin '{job.Title}' chưa chọn hồ sơ của bạn ở thời điểm này.",
+            "/dashboard/viec-da-ung-tuyen");
 
         return true;
     }
@@ -475,6 +589,9 @@ public class JobService : IJobService
             TimingType = job.TimingType,
             ServiceCategory = job.ServiceCategory,
             WorkingTimeDescription = job.WorkingTimeDescription,
+            WorkDate = job.WorkDate,
+            WorkStartTime = job.WorkStartTime,
+            WorkEndTime = job.WorkEndTime,
             PreferredGender = job.PreferredGender,
             TargetAgeRange = job.TargetAgeRange,
             ApplicantCount = job.Applications?.Count ?? 0,
@@ -545,6 +662,79 @@ public class JobService : IJobService
             ApplicantCount = doc.ApplicantCount,
             CreatedAt = doc.CreatedAt
         };
+    }
+
+    private static void ValidateJobSchedule(CreateJobRequest request)
+    {
+        if (!request.WorkDate.HasValue)
+        {
+            throw new Exception("Vui lòng chọn ngày làm việc.");
+        }
+
+        if (request.WorkDate.Value.Date < DateTime.Today)
+        {
+            throw new Exception("Ngày làm việc không được ở quá khứ.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.WorkStartTime))
+        {
+            throw new Exception("Vui lòng chọn giờ bắt đầu.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.WorkEndTime))
+        {
+            throw new Exception("Vui lòng chọn giờ kết thúc.");
+        }
+
+        if (!TimeSpan.TryParse(request.WorkStartTime, out var startTime) ||
+            !TimeSpan.TryParse(request.WorkEndTime, out var endTime))
+        {
+            throw new Exception("Khung giờ làm việc không hợp lệ.");
+        }
+
+        if (startTime >= endTime)
+        {
+            throw new Exception("Giờ kết thúc phải sau giờ bắt đầu.");
+        }
+    }
+
+    private async Task<bool> HasScheduleConflictAsync(Guid workerId, Domain.Entities.Job targetJob, Guid currentJobId)
+    {
+        if (!targetJob.WorkDate.HasValue ||
+            string.IsNullOrWhiteSpace(targetJob.WorkStartTime) ||
+            string.IsNullOrWhiteSpace(targetJob.WorkEndTime))
+        {
+            return false;
+        }
+
+        if (!TimeSpan.TryParse(targetJob.WorkStartTime, out var targetStart) ||
+            !TimeSpan.TryParse(targetJob.WorkEndTime, out var targetEnd))
+        {
+            return false;
+        }
+
+        var currentJobs = await _jobRepository.GetByAssignedWorkerIdAsync(workerId);
+
+        foreach (var scheduledJob in currentJobs.Where(j => j.Id != currentJobId && j.WorkDate.HasValue))
+        {
+            if (scheduledJob.WorkDate!.Value.Date != targetJob.WorkDate.Value.Date)
+            {
+                continue;
+            }
+
+            if (!TimeSpan.TryParse(scheduledJob.WorkStartTime, out var scheduledStart) ||
+                !TimeSpan.TryParse(scheduledJob.WorkEndTime, out var scheduledEnd))
+            {
+                continue;
+            }
+
+            if (targetStart < scheduledEnd && scheduledStart < targetEnd)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public async Task<int> GetTotalApplicationCountAsync()

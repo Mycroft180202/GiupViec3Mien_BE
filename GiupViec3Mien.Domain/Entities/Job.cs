@@ -27,6 +27,9 @@ public class Job
     public ServiceCategory ServiceCategory { get; set; } = ServiceCategory.Housekeeping;
     
     public string? WorkingTimeDescription { get; set; } // e.g., "Sáng 8h-11h"
+    public DateTime? WorkDate { get; set; }
+    public string? WorkStartTime { get; set; }
+    public string? WorkEndTime { get; set; }
     public GenderOption PreferredGender { get; set; } = GenderOption.Any;
     public string? TargetAgeRange { get; set; } // e.g., "20-40"
 

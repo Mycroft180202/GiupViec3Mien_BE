@@ -27,6 +27,8 @@ using GiupViec3Mien.Services.NewsFeed;
 using GiupViec3Mien.Services.Training;
 using GiupViec3Mien.Services.Notification;
 using Elastic.Clients.Elasticsearch;
+using GiupViec3Mien.Services.Infrastructure;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,8 +65,17 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IJobSearchService, JobSearchService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<INotificationRealtimeService, SignalRNotificationRealtimeService>();
+builder.Services.AddScoped<IDistributedLockService, RedisDistributedLockService>();
 
 builder.Services.AddMemoryCache();
+var redisConfiguration = builder.Configuration.GetSection("Redis");
+var redisConnection = redisConfiguration["Configuration"] ?? "localhost:6379";
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConnection;
+    options.InstanceName = redisConfiguration["InstanceName"] ?? "GiupViec3Mien:";
+});
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
 builder.Services.AddHttpClient<IZaloService, GiupViec3Mien.Services.NotificationServices.ZaloService>();
 builder.Services.AddScoped<ISmsService, GiupViec3Mien.Services.NotificationServices.SmsFallbackService>();
 builder.Services.AddScoped<IVerificationService, GiupViec3Mien.Services.NotificationServices.VerificationService>();

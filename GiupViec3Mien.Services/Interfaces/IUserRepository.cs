@@ -8,6 +8,7 @@ public interface IUserRepository
     Task<User?> GetByPhoneAsync(string phone);
     Task<User?> GetByIdAsync(Guid id);
     Task<IEnumerable<User>> GetAllWorkersAsync();
+    Task<IEnumerable<User>> GetPublicWorkersAsync();
     Task<IEnumerable<User>> GetAllAsync();
     Task AddAsync(User user);
     Task DeleteAsync(User user);

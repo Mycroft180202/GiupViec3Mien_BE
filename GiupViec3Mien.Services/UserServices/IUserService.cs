@@ -16,6 +16,8 @@ public interface IUserService
     Task UpdateSkillsAsync(Guid userId, List<string> skills);
     Task UpdateEmailAsync(Guid userId, string email);
     Task<DTOs.User.WorkerInfoResponse?> GetWorkerInfoAsync(Guid workerId, Guid requesterId);
+    Task<IEnumerable<DTOs.User.PublicWorkerCardResponse>> GetPublicWorkersAsync(DTOs.User.PublicWorkerSearchRequest request);
+    Task<DTOs.User.WorkerInfoResponse?> GetPublicWorkerProfileAsync(Guid workerId, Guid requesterId);
     Task UpdateProfileAsync(Guid userId, DTOs.User.UpdateUserProfileRequest request);
     Task MarkPhoneVerifiedAsync(Guid userId, string channel);
     

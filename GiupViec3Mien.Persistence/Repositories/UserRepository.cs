@@ -34,6 +34,18 @@ public class UserRepository : IUserRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<User>> GetPublicWorkersAsync()
+    {
+        return await _context.Users
+            .Include(u => u.WorkerProfile)
+            .Where(u =>
+                u.Role == Domain.Enums.Role.Worker &&
+                u.WorkerProfile != null &&
+                u.WorkerProfile.IsProfilePublic)
+            .OrderByDescending(u => u.WorkerProfile!.UpdatedAt)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<User>> GetAllAsync()
     {
         return await _context.Users.ToListAsync();

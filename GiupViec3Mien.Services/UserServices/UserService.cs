@@ -1,25 +1,34 @@
-using GiupViec3Mien.Services.FileStorage;
-using GiupViec3Mien.Services.Interfaces;
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using GiupViec3Mien.Domain.Entities;
 using GiupViec3Mien.Services.DTOs.Admin;
-using System.Text.Json.Nodes;
+using GiupViec3Mien.Services.DTOs.User;
+using GiupViec3Mien.Services.FileStorage;
+using GiupViec3Mien.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace GiupViec3Mien.Services.UserServices;
 
 public class UserService : IUserService
 {
+    private const string PublicWorkerVersionCacheKey = "workers:public:version";
     private readonly IUserRepository _userRepository;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IDistributedCache _distributedCache;
 
-    public UserService(IUserRepository userRepository, IFileStorageService fileStorageService)
+    public UserService(
+        IUserRepository userRepository,
+        IFileStorageService fileStorageService,
+        IDistributedCache distributedCache)
     {
         _userRepository = userRepository;
         _fileStorageService = fileStorageService;
+        _distributedCache = distributedCache;
     }
 
     public async Task<string> UploadProfileImageAsync(Guid userId, IFormFile file)
@@ -30,16 +39,17 @@ public class UserService : IUserService
             throw new Exception("User not found.");
         }
 
-        string datePath = DateTime.UtcNow.ToString("yyyy/MM/dd");
-        string folderName = $"{datePath}/{userId}";
+        var datePath = DateTime.UtcNow.ToString("yyyy/MM/dd");
+        var folderName = $"{datePath}/{userId}";
 
-        string imageUrl = await _fileStorageService.UploadImageAsync(file, folderName);
+        var imageUrl = await _fileStorageService.UploadImageAsync(file, folderName);
 
         if (!string.IsNullOrEmpty(imageUrl))
         {
             user.AvatarUrl = imageUrl;
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.SaveChangesAsync();
+            await TouchWorkerCacheVersionAsync();
         }
 
         return imageUrl;
@@ -53,6 +63,7 @@ public class UserService : IUserService
         user.AvatarUrl = imgUrl;
         user.UpdatedAt = DateTime.UtcNow;
         await _userRepository.SaveChangesAsync();
+        await TouchWorkerCacheVersionAsync();
     }
 
     public async Task<AdminUserDetailResponse?> GetProfileAsync(Guid userId)
@@ -69,19 +80,17 @@ public class UserService : IUserService
 
         if (user.Role == Domain.Enums.Role.Worker)
         {
-            if (user.WorkerProfile == null)
-            {
-                user.WorkerProfile = new WorkerProfile { UserId = userId };
-            }
+            user.WorkerProfile ??= new WorkerProfile { UserId = userId };
             user.WorkerProfile.Skills = JsonSerializer.Serialize(skills);
             user.WorkerProfile.UpdatedAt = DateTime.UtcNow;
+            await TouchWorkerCacheVersionAsync();
         }
         else
         {
-            var info = string.IsNullOrEmpty(user.AdditionalInfo) 
-                ? new Dictionary<string, object>() 
+            var info = string.IsNullOrEmpty(user.AdditionalInfo)
+                ? new Dictionary<string, object>()
                 : JsonSerializer.Deserialize<Dictionary<string, object>>(user.AdditionalInfo) ?? new Dictionary<string, object>();
-            
+
             info["skills"] = skills;
             user.AdditionalInfo = JsonSerializer.Serialize(info);
         }
@@ -100,53 +109,128 @@ public class UserService : IUserService
         await _userRepository.SaveChangesAsync();
     }
 
-    public async Task<DTOs.User.WorkerInfoResponse?> GetWorkerInfoAsync(Guid workerId, Guid requesterId)
+    public async Task<WorkerInfoResponse?> GetWorkerInfoAsync(Guid workerId, Guid requesterId)
     {
         var user = await _userRepository.GetByIdAsync(workerId);
-        if (user == null || user.Role != Domain.Enums.Role.Worker) return null;
+        if (user == null || user.Role != Domain.Enums.Role.Worker)
+        {
+            return null;
+        }
 
         var profile = user.WorkerProfile;
         var requester = requesterId != Guid.Empty ? await _userRepository.GetByIdAsync(requesterId) : null;
+        var isOwner = workerId == requesterId;
+        var isAdmin = requester?.Role == Domain.Enums.Role.Admin;
+        var isPublicProfile = profile?.IsProfilePublic ?? false;
 
-        bool hasFullAccess = workerId == requesterId || 
-                            (requester != null && 
-                            (requester.Role == Domain.Enums.Role.Admin || 
-                            (requester.HasPremiumAccess && requester.PremiumExpiry >= DateTime.UtcNow)));
-
-        int age = 0;
-        if (user.DateOfBirth.HasValue)
+        if (!isOwner && !isAdmin && !isPublicProfile)
         {
-            age = DateTime.Today.Year - user.DateOfBirth.Value.Year;
-            if (user.DateOfBirth.Value.Date > DateTime.Today.AddYears(-age)) age--;
+            return null;
         }
 
-        return new DTOs.User.WorkerInfoResponse
-        {
-            Id = user.Id,
-            FullName = user.FullName,
-            Phone = hasFullAccess ? user.Phone : MaskContact(user.Phone),
-            Email = hasFullAccess ? user.Email : MaskContact(user.Email),
-            AvatarUrl = user.AvatarUrl,
-            Gender = user.Gender.ToString(),
-            DateOfBirth = user.DateOfBirth,
-            Age = age,
-            Latitude = user.Latitude,
-            Longitude = user.Longitude,
-            JoinedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt,
+        var hasFullAccess = isOwner ||
+                            isAdmin ||
+                            (requester != null &&
+                             requester.HasPremiumAccess &&
+                             requester.PremiumExpiry >= DateTime.UtcNow);
 
-            // Profile info
-            Bio = profile?.Bio,
-            ExperienceYears = profile?.ExperienceYears ?? 0,
-            HourlyRate = profile?.HourlyRate ?? 0,
-            Verified = profile?.Verified ?? false,
-            Skills = string.IsNullOrEmpty(profile?.Skills) 
-                ? new List<string>() 
-                : JsonSerializer.Deserialize<List<string>>(profile.Skills) ?? new List<string>()
-        };
+        return MapToWorkerInfoResponse(user, hasFullAccess);
     }
 
-    public async Task UpdateProfileAsync(Guid userId, DTOs.User.UpdateUserProfileRequest request)
+    public async Task<IEnumerable<PublicWorkerCardResponse>> GetPublicWorkersAsync(PublicWorkerSearchRequest request)
+    {
+        var version = await GetWorkerCacheVersionAsync();
+        var cacheKey =
+            $"workers:public:list:v{version}:keyword={NormalizeKeyPart(request.Keyword)}:location={NormalizeKeyPart(request.Location)}:service={NormalizeKeyPart(request.ServiceCategory)}";
+
+        var cached = await _distributedCache.GetStringAsync(cacheKey);
+        if (!string.IsNullOrWhiteSpace(cached))
+        {
+            return JsonSerializer.Deserialize<List<PublicWorkerCardResponse>>(cached) ?? new List<PublicWorkerCardResponse>();
+        }
+
+        var workers = await _userRepository.GetPublicWorkersAsync();
+        var keyword = request.Keyword?.Trim().ToLowerInvariant();
+        var location = request.Location?.Trim().ToLowerInvariant();
+        var serviceCategory = request.ServiceCategory?.Trim().ToLowerInvariant();
+
+        var filtered = workers.Where(user =>
+        {
+            var profile = user.WorkerProfile;
+            if (profile == null || !profile.IsProfilePublic)
+            {
+                return false;
+            }
+
+            var skills = DeserializeList(profile.Skills);
+            var locations = DeserializeList(profile.PreferredLocations);
+            var serviceCategories = DeserializeList(profile.DesiredServiceCategories);
+
+            var keywordMatched = string.IsNullOrWhiteSpace(keyword) ||
+                                 user.FullName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                                 (profile.DesiredJobTitle?.Contains(keyword, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                                 (profile.SeekingDescription?.Contains(keyword, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                                 skills.Any(skill => skill.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+
+            var locationMatched = string.IsNullOrWhiteSpace(location) ||
+                                  locations.Any(item => item.Contains(location, StringComparison.OrdinalIgnoreCase)) ||
+                                  (user.AdditionalInfo?.Contains(location, StringComparison.OrdinalIgnoreCase) ?? false);
+
+            var serviceMatched = string.IsNullOrWhiteSpace(serviceCategory) ||
+                                 serviceCategories.Any(item => item.Equals(serviceCategory, StringComparison.OrdinalIgnoreCase));
+
+            return keywordMatched && locationMatched && serviceMatched;
+        })
+        .Select(MapToPublicWorkerCard)
+        .OrderByDescending(worker => worker.Verified)
+        .ThenByDescending(worker => worker.ExperienceYears)
+        .ThenByDescending(worker => worker.UpdatedAt)
+        .ToList();
+
+        await _distributedCache.SetStringAsync(
+            cacheKey,
+            JsonSerializer.Serialize(filtered),
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+            });
+
+        return filtered;
+    }
+
+    public async Task<WorkerInfoResponse?> GetPublicWorkerProfileAsync(Guid workerId, Guid requesterId)
+    {
+        if (requesterId != Guid.Empty)
+        {
+            return await GetWorkerInfoAsync(workerId, requesterId);
+        }
+
+        var version = await GetWorkerCacheVersionAsync();
+        var cacheKey = $"workers:public:detail:v{version}:{workerId}";
+        var cached = await _distributedCache.GetStringAsync(cacheKey);
+        if (!string.IsNullOrWhiteSpace(cached))
+        {
+            return JsonSerializer.Deserialize<WorkerInfoResponse>(cached);
+        }
+
+        var worker = await GetWorkerInfoAsync(workerId, Guid.Empty);
+        if (worker == null)
+        {
+            return null;
+        }
+
+        await _distributedCache.SetStringAsync(
+            cacheKey,
+            JsonSerializer.Serialize(worker),
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+            });
+
+        return worker;
+    }
+
+    public async Task UpdateProfileAsync(Guid userId, UpdateUserProfileRequest request)
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) throw new Exception("User not found.");
@@ -157,19 +241,31 @@ public class UserService : IUserService
         user.DateOfBirth = request.DateOfBirth;
         user.Latitude = request.Latitude;
         user.Longitude = request.Longitude;
-        if (!string.IsNullOrEmpty(request.AvatarUrl)) user.AvatarUrl = request.AvatarUrl;
-        if (request.AdditionalInfo != null) user.AdditionalInfo = request.AdditionalInfo;
-        
+        if (!string.IsNullOrEmpty(request.AvatarUrl))
+        {
+            user.AvatarUrl = request.AvatarUrl;
+        }
+
+        if (request.AdditionalInfo != null)
+        {
+            user.AdditionalInfo = request.AdditionalInfo;
+        }
+
         if (user.Role == Domain.Enums.Role.Worker)
         {
-            if (user.WorkerProfile == null)
-            {
-                user.WorkerProfile = new WorkerProfile { UserId = userId };
-            }
+            user.WorkerProfile ??= new WorkerProfile { UserId = userId };
             user.WorkerProfile.Bio = request.Bio;
+            user.WorkerProfile.DesiredJobTitle = request.DesiredJobTitle;
+            user.WorkerProfile.SeekingDescription = request.SeekingDescription;
             user.WorkerProfile.ExperienceYears = request.ExperienceYears;
             user.WorkerProfile.HourlyRate = request.HourlyRate;
+            user.WorkerProfile.IsProfilePublic = request.IsProfilePublic;
+            user.WorkerProfile.Skills = JsonSerializer.Serialize(request.Skills ?? new List<string>());
+            user.WorkerProfile.PreferredLocations = JsonSerializer.Serialize(request.PreferredLocations ?? new List<string>());
+            user.WorkerProfile.DesiredServiceCategories = JsonSerializer.Serialize(request.DesiredServiceCategories ?? new List<string>());
             user.WorkerProfile.UpdatedAt = DateTime.UtcNow;
+
+            await TouchWorkerCacheVersionAsync();
         }
 
         user.UpdatedAt = DateTime.UtcNow;
@@ -247,6 +343,7 @@ public class UserService : IUserService
 
         await _userRepository.DeleteAsync(user);
         await _userRepository.SaveChangesAsync();
+        await TouchWorkerCacheVersionAsync();
         return true;
     }
 
@@ -282,15 +379,88 @@ public class UserService : IUserService
             WorkerProfile = user.WorkerProfile == null ? null : new WorkerProfileSummary
             {
                 Bio = user.WorkerProfile.Bio,
+                DesiredJobTitle = user.WorkerProfile.DesiredJobTitle,
+                SeekingDescription = user.WorkerProfile.SeekingDescription,
                 ExperienceYears = user.WorkerProfile.ExperienceYears,
                 HourlyRate = user.WorkerProfile.HourlyRate,
                 Verified = user.WorkerProfile.Verified,
-                Skills = user.WorkerProfile.Skills
+                IsProfilePublic = user.WorkerProfile.IsProfilePublic,
+                Skills = user.WorkerProfile.Skills,
+                PreferredLocations = user.WorkerProfile.PreferredLocations,
+                DesiredServiceCategories = user.WorkerProfile.DesiredServiceCategories
             }
         };
     }
 
-    private JsonObject ParseAdditionalInfo(string? additionalInfo)
+    private WorkerInfoResponse MapToWorkerInfoResponse(User user, bool hasFullAccess)
+    {
+        var profile = user.WorkerProfile;
+
+        return new WorkerInfoResponse
+        {
+            Id = user.Id,
+            FullName = user.FullName,
+            Phone = hasFullAccess ? user.Phone : MaskContact(user.Phone),
+            Email = hasFullAccess ? user.Email : MaskContact(user.Email),
+            AvatarUrl = user.AvatarUrl,
+            Gender = user.Gender.ToString(),
+            DateOfBirth = user.DateOfBirth,
+            Age = CalculateAge(user.DateOfBirth),
+            Latitude = user.Latitude,
+            Longitude = user.Longitude,
+            Bio = profile?.Bio,
+            DesiredJobTitle = profile?.DesiredJobTitle,
+            SeekingDescription = profile?.SeekingDescription,
+            ExperienceYears = profile?.ExperienceYears ?? 0,
+            HourlyRate = profile?.HourlyRate ?? 0,
+            Verified = profile?.Verified ?? false,
+            IsProfilePublic = profile?.IsProfilePublic ?? false,
+            Skills = DeserializeList(profile?.Skills),
+            PreferredLocations = DeserializeList(profile?.PreferredLocations),
+            DesiredServiceCategories = DeserializeList(profile?.DesiredServiceCategories),
+            JoinedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt
+        };
+    }
+
+    private PublicWorkerCardResponse MapToPublicWorkerCard(User user)
+    {
+        var profile = user.WorkerProfile!;
+
+        return new PublicWorkerCardResponse
+        {
+            Id = user.Id,
+            FullName = user.FullName,
+            AvatarUrl = user.AvatarUrl,
+            DesiredJobTitle = profile.DesiredJobTitle,
+            SeekingDescription = profile.SeekingDescription,
+            ExperienceYears = profile.ExperienceYears,
+            HourlyRate = profile.HourlyRate,
+            Verified = profile.Verified,
+            LocationSummary = BuildLocationSummary(user.AdditionalInfo, profile.PreferredLocations),
+            Skills = DeserializeList(profile.Skills),
+            DesiredServiceCategories = DeserializeList(profile.DesiredServiceCategories),
+            UpdatedAt = profile.UpdatedAt
+        };
+    }
+
+    private static int CalculateAge(DateTime? dateOfBirth)
+    {
+        if (!dateOfBirth.HasValue)
+        {
+            return 0;
+        }
+
+        var age = DateTime.Today.Year - dateOfBirth.Value.Year;
+        if (dateOfBirth.Value.Date > DateTime.Today.AddYears(-age))
+        {
+            age--;
+        }
+
+        return age;
+    }
+
+    private static JsonObject ParseAdditionalInfo(string? additionalInfo)
     {
         if (string.IsNullOrWhiteSpace(additionalInfo))
         {
@@ -307,7 +477,68 @@ public class UserService : IUserService
         }
     }
 
-    private string? MaskContact(string? contact)
+    private static List<string> DeserializeList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return new List<string>();
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+        }
+        catch
+        {
+            return new List<string>();
+        }
+    }
+
+    private static string? BuildLocationSummary(string? additionalInfo, string? preferredLocationsJson)
+    {
+        var preferredLocations = DeserializeList(preferredLocationsJson);
+        if (preferredLocations.Count > 0)
+        {
+            return string.Join(", ", preferredLocations.Take(3));
+        }
+
+        var info = ParseAdditionalInfo(additionalInfo);
+        var wardName = info["wardName"]?.GetValue<string>();
+        var districtName = info["districtName"]?.GetValue<string>();
+        var provinceName = info["provinceName"]?.GetValue<string>();
+
+        var parts = new[] { wardName, districtName, provinceName }
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .ToList();
+
+        return parts.Count == 0 ? null : string.Join(", ", parts);
+    }
+
+    private async Task<string> GetWorkerCacheVersionAsync()
+    {
+        var version = await _distributedCache.GetStringAsync(PublicWorkerVersionCacheKey);
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            version = DateTime.UtcNow.Ticks.ToString();
+            await _distributedCache.SetStringAsync(PublicWorkerVersionCacheKey, version);
+        }
+
+        return version;
+    }
+
+    private async Task TouchWorkerCacheVersionAsync()
+    {
+        await _distributedCache.SetStringAsync(PublicWorkerVersionCacheKey, DateTime.UtcNow.Ticks.ToString());
+    }
+
+    private static string NormalizeKeyPart(string? input)
+    {
+        return string.IsNullOrWhiteSpace(input)
+            ? "all"
+            : input.Trim().ToLowerInvariant().Replace(" ", "-");
+    }
+
+    private static string? MaskContact(string? contact)
     {
         if (string.IsNullOrEmpty(contact)) return contact;
         if (contact.Contains("@"))
@@ -315,6 +546,7 @@ public class UserService : IUserService
             var parts = contact.Split('@');
             return parts[0].Length > 2 ? parts[0][..2] + "***@" + parts[1] : "***@" + parts[1];
         }
+
         return contact.Length > 4 ? contact[..3] + "****" + contact[^3..] : "****";
     }
 }

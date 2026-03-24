@@ -3,6 +3,7 @@ using System;
 using GiupViec3Mien.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GiupViec3Mien.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260324022413_SyncNotificationModel")]
+    partial class SyncNotificationModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -228,15 +231,6 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("WorkDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("WorkEndTime")
-                        .HasColumnType("text");
-
-                    b.Property<string>("WorkStartTime")
-                        .HasColumnType("text");
-
                     b.Property<string>("WorkingTimeDescription")
                         .HasColumnType("text");
 
@@ -261,9 +255,6 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.Property<DateTime>("AppliedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("AvailableStartDate")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<decimal>("BidPrice")
                         .HasColumnType("numeric");
 
@@ -278,9 +269,6 @@ namespace GiupViec3Mien.Persistence.Migrations
 
                     b.Property<string>("Message")
                         .HasColumnType("text");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -602,26 +590,11 @@ namespace GiupViec3Mien.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DesiredJobTitle")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DesiredServiceCategories")
-                        .HasColumnType("jsonb");
-
                     b.Property<int>("ExperienceYears")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("HourlyRate")
                         .HasColumnType("numeric");
-
-                    b.Property<bool>("IsProfilePublic")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PreferredLocations")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("SeekingDescription")
-                        .HasColumnType("text");
 
                     b.Property<string>("Skills")
                         .HasColumnType("jsonb");

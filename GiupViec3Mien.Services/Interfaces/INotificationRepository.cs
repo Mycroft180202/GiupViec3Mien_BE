@@ -6,5 +6,6 @@ public interface INotificationRepository
     Task<GiupViec3Mien.Domain.Entities.Notification?> GetByIdAsync(Guid id);
     Task<IEnumerable<GiupViec3Mien.Domain.Entities.Notification>> GetByRecipientAsync(Guid recipientId, int limit = 20);
     Task<int> CountUnreadAsync(Guid recipientId);
+    Task<int> MarkAllAsReadAsync(Guid recipientId);
     Task SaveChangesAsync();
 }

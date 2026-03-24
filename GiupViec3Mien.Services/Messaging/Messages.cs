@@ -15,7 +15,7 @@ public record ProcessCvTask(Guid ApplicationId, string TempFilePath, string File
 public record AnalyticsEvent(string EventType, Guid? UserId, string Data);
 
 // 5. Handling Transactional Bursts
-public record JobApplicationTask(Guid UserId, Guid JobId, string Message, decimal BidPrice, string? CvUrl);
+public record JobApplicationTask(Guid UserId, Guid JobId, string Message, decimal BidPrice, string? CvUrl, DateTime? AvailableStartDate);
 
 // 6. Chat Persistence & Notifications
 public record MessageSentEvent(Guid SenderId, Guid ReceiverId, string Message, string RoomId);

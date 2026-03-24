@@ -30,6 +30,9 @@ public class CreateJobRequest
     public ServiceCategory ServiceCategory { get; set; } = ServiceCategory.Housekeeping;
     
     public string? WorkingTimeDescription { get; set; }
+    public DateTime? WorkDate { get; set; }
+    public string? WorkStartTime { get; set; }
+    public string? WorkEndTime { get; set; }
     public GenderOption PreferredGender { get; set; } = GenderOption.Any;
     public string? TargetAgeRange { get; set; }
 }

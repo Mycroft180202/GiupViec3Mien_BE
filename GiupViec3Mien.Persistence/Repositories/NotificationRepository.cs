@@ -37,6 +37,13 @@ public class NotificationRepository : INotificationRepository
         return await _context.Notifications.CountAsync(n => n.RecipientId == recipientId && !n.IsRead);
     }
 
+    public async Task<int> MarkAllAsReadAsync(Guid recipientId)
+    {
+        return await _context.Notifications
+            .Where(n => n.RecipientId == recipientId && !n.IsRead)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(n => n.IsRead, true));
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

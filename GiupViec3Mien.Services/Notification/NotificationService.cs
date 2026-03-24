@@ -66,21 +66,7 @@ public class NotificationService : INotificationService
 
     public async Task<int> MarkAllAsReadAsync(Guid recipientId)
     {
-        var notifications = await _notificationRepository.GetByRecipientAsync(recipientId, 100);
-        var changed = 0;
-
-        foreach (var notification in notifications.Where(n => !n.IsRead))
-        {
-            notification.IsRead = true;
-            changed++;
-        }
-
-        if (changed > 0)
-        {
-            await _notificationRepository.SaveChangesAsync();
-        }
-
-        return changed;
+        return await _notificationRepository.MarkAllAsReadAsync(recipientId);
     }
 
     private static NotificationResponse Map(Domain.Entities.Notification notification)

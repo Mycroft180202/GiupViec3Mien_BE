@@ -16,8 +16,14 @@ public class UpdateUserProfileRequest
     
     // For Workers
     public string? Bio { get; set; }
+    public string? DesiredJobTitle { get; set; }
+    public string? SeekingDescription { get; set; }
     public int ExperienceYears { get; set; }
     public decimal HourlyRate { get; set; }
+    public bool IsProfilePublic { get; set; }
+    public List<string> PreferredLocations { get; set; } = new();
+    public List<string> DesiredServiceCategories { get; set; } = new();
+    public List<string> Skills { get; set; } = new();
 
     public string? AdditionalInfo { get; set; }
 }

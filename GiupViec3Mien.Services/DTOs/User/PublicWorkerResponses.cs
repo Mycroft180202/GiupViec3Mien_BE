@@ -3,31 +3,25 @@ using System.Collections.Generic;
 
 namespace GiupViec3Mien.Services.DTOs.User;
 
-public class WorkerInfoResponse
+public class PublicWorkerCardResponse
 {
     public Guid Id { get; set; }
     public string FullName { get; set; } = string.Empty;
-    public string? Phone { get; set; }
-    public string? Email { get; set; }
     public string? AvatarUrl { get; set; }
-    public string? Gender { get; set; }
-    public DateTime? DateOfBirth { get; set; }
-    public int Age { get; set; }
-    public double Latitude { get; set; }
-    public double Longitude { get; set; }
-
-    // Worker Profile Specific
-    public string? Bio { get; set; }
     public string? DesiredJobTitle { get; set; }
     public string? SeekingDescription { get; set; }
     public int ExperienceYears { get; set; }
     public decimal HourlyRate { get; set; }
     public bool Verified { get; set; }
-    public bool IsProfilePublic { get; set; }
+    public string? LocationSummary { get; set; }
     public List<string> Skills { get; set; } = new();
-    public List<string> PreferredLocations { get; set; } = new();
     public List<string> DesiredServiceCategories { get; set; } = new();
-    
-    public DateTime JoinedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+}
+
+public class PublicWorkerSearchRequest
+{
+    public string? Keyword { get; set; }
+    public string? Location { get; set; }
+    public string? ServiceCategory { get; set; }
 }

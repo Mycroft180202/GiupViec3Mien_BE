@@ -34,7 +34,9 @@ public class ApplicationConsumer : IConsumer<JobApplicationTask>
             ApplicantId = task.UserId,
             Message = task.Message,
             BidPrice = task.BidPrice,
-            CvUrl = task.CvUrl
+            CvUrl = task.CvUrl,
+            AvailableStartDate = task.AvailableStartDate?.Date,
+            Status = Domain.Enums.ApplicationStatus.Pending
         };
 
         await _applicationRepository.AddAsync(application);

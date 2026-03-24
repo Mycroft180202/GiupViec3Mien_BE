@@ -35,10 +35,15 @@ public class AdminUserDetailResponse
 public class WorkerProfileSummary
 {
     public string? Bio { get; set; }
+    public string? DesiredJobTitle { get; set; }
+    public string? SeekingDescription { get; set; }
     public int ExperienceYears { get; set; }
     public decimal HourlyRate { get; set; }
     public bool Verified { get; set; }
+    public bool IsProfilePublic { get; set; }
     public string? Skills { get; set; }
+    public string? PreferredLocations { get; set; }
+    public string? DesiredServiceCategories { get; set; }
 }
 
 public class AdminUpdateUserRequest
